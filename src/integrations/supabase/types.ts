@@ -16,20 +16,26 @@ export type Database = {
     Tables: {
       event_fighters: {
         Row: {
+          card_type: string
           created_at: string
           event_id: string
+          fight_order: number
           fighter_id: string
           id: string
         }
         Insert: {
+          card_type?: string
           created_at?: string
           event_id: string
+          fight_order?: number
           fighter_id: string
           id?: string
         }
         Update: {
+          card_type?: string
           created_at?: string
           event_id?: string
+          fight_order?: number
           fighter_id?: string
           id?: string
         }
