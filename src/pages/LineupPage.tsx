@@ -36,7 +36,7 @@ const LineupPage = () => {
       <div className="container py-8 space-y-8">
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
           <h1 className="font-display text-3xl font-bold uppercase tracking-tight mb-1">Escalação</h1>
-          <p className="text-muted-foreground">Monte seu time para UFC 313</p>
+          <p className="text-muted-foreground">Monte seu time para UFC 326</p>
         </motion.div>
 
         {/* Salary Bar */}
