@@ -30,7 +30,7 @@ const Dashboard = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard icon={Trophy} label="Seus Pontos" value="2.450" accent />
           <StatCard icon={TrendingUp} label="Ranking Geral" value="#3" />
-          <StatCard icon={Users} label="Ligas Ativas" value="4" />
+          <StatCard icon={Users} label="Participantes" value="42" />
           <StatCard icon={Calendar} label="Rodadas Jogadas" value="12" />
         </div>
 
