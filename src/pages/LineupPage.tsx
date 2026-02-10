@@ -36,21 +36,28 @@ const LineupPage = () => {
     },
   });
 
-  const { data: fighters = [], isLoading } = useQuery({
+  const { data: fighterEntries = [], isLoading } = useQuery({
     queryKey: ["fighters", nextEvent?.id],
     enabled: !!nextEvent?.id,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("event_fighters")
-        .select("fighter_id, fighters(*)")
+        .select("fighter_id, card_type, fight_order, fighters(*)")
         .eq("event_id", nextEvent!.id);
       if (error) throw error;
       return (data ?? [])
-        .map((ef: any) => ef.fighters)
-        .filter(Boolean)
-        .sort((a: any, b: any) => b.salary - a.salary);
+        .filter((ef: any) => ef.fighters)
+        .sort((a: any, b: any) => {
+          // main before prelim
+          if (a.card_type !== b.card_type) return a.card_type === 'main' ? -1 : 1;
+          // then by fight_order
+          return a.fight_order - b.fight_order;
+        })
+        .map((ef: any) => ({ ...ef.fighters, card_type: ef.card_type, fight_order: ef.fight_order }));
     },
   });
+
+  const fighters = fighterEntries;
 
   const totalSalary = selected.reduce((sum, id) => {
     const f = fighters.find((f) => f.id === id);
@@ -151,67 +158,149 @@ const LineupPage = () => {
           <div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
         ) : (
           <div className="space-y-3">
-            {fighters
-              .filter((f) =>
+            {(() => {
+              const filtered = fighters.filter((f: any) =>
                 f.name.toLowerCase().includes(search.toLowerCase()) ||
                 f.weight_class.toLowerCase().includes(search.toLowerCase()) ||
                 f.nickname.toLowerCase().includes(search.toLowerCase())
-              )
-              .map((fighter, i) => {
-                const isSelected = selected.includes(fighter.id);
-                const isCaptain = captain === fighter.id;
-                const canAfford = totalSalary + fighter.salary <= SALARY_CAP;
-                const disabled = !isSelected && (selected.length >= MAX_FIGHTERS || !canAfford);
+              );
+              const mainFighters = filtered.filter((f: any) => f.card_type === 'main');
+              const prelimFighters = filtered.filter((f: any) => f.card_type === 'prelim');
+              let idx = 0;
 
-                return (
-                  <motion.div
-                    key={fighter.id}
-                    initial={{ opacity: 0, x: -10 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.05 }}
-                    className={`glass-card rounded-xl p-4 flex items-center justify-between transition-all ${
-                      isSelected ? "border-primary/40 bg-primary/5" : disabled ? "opacity-50" : "hover:border-border"
-                    }`}
-                  >
-                    <div className="flex items-center gap-4">
-                      <div className={`flex h-12 w-12 items-center justify-center rounded-lg font-display text-lg font-bold ${
-                        isSelected ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"
-                      }`}>
-                        {fighter.country}
+              return (
+                <>
+                  {mainFighters.length > 0 && (
+                    <>
+                      <div className="flex items-center gap-2 pt-2">
+                        <Swords className="h-4 w-4 text-primary" />
+                        <span className="font-display text-sm font-bold uppercase tracking-wider text-primary">Card Principal</span>
+                        <div className="flex-1 h-px bg-primary/20" />
                       </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-display font-bold uppercase">{fighter.name}</span>
-                          {isCaptain && (
-                            <span className="text-xs bg-accent/10 text-accent px-2 py-0.5 rounded-full font-semibold flex items-center gap-1">
-                              <Star className="h-3 w-3" /> Capitão
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-xs text-muted-foreground">{fighter.weight_class} · {fighter.record}</p>
-                      </div>
-                    </div>
+                      {mainFighters.map((fighter: any) => {
+                        const i = idx++;
+                        const isSelected = selected.includes(fighter.id);
+                        const isCaptain = captain === fighter.id;
+                        const canAfford = totalSalary + fighter.salary <= SALARY_CAP;
+                        const disabled = !isSelected && (selected.length >= MAX_FIGHTERS || !canAfford);
 
-                    <div className="flex items-center gap-3">
-                      <span className="font-display font-bold text-accent">${fighter.salary.toLocaleString()}</span>
-                      {isSelected && !isCaptain && (
-                        <Button size="sm" variant="ghost" className="text-accent hover:text-accent hover:bg-accent/10 text-xs" onClick={() => setCaptain(fighter.id)}>
-                          <Star className="h-3 w-3 mr-1" /> Cap
-                        </Button>
-                      )}
-                      <Button
-                        size="sm"
-                        variant={isSelected ? "default" : "outline"}
-                        className={isSelected ? "bg-primary hover:bg-primary/90 text-primary-foreground" : "border-border text-foreground hover:bg-secondary"}
-                        disabled={disabled}
-                        onClick={() => toggleFighter(fighter.id)}
-                      >
-                        {isSelected ? <Check className="h-4 w-4" /> : "Escalar"}
-                      </Button>
-                    </div>
-                  </motion.div>
-                );
-              })}
+                        return (
+                          <motion.div
+                            key={fighter.id}
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: i * 0.05 }}
+                            className={`glass-card rounded-xl p-4 flex items-center justify-between transition-all ${
+                              isSelected ? "border-primary/40 bg-primary/5" : disabled ? "opacity-50" : "hover:border-border"
+                            }`}
+                          >
+                            <div className="flex items-center gap-4">
+                              <div className={`flex h-12 w-12 items-center justify-center rounded-lg font-display text-lg font-bold ${
+                                isSelected ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"
+                              }`}>
+                                {fighter.country}
+                              </div>
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-display font-bold uppercase">{fighter.name}</span>
+                                  {isCaptain && (
+                                    <span className="text-xs bg-accent/10 text-accent px-2 py-0.5 rounded-full font-semibold flex items-center gap-1">
+                                      <Star className="h-3 w-3" /> Capitão
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-xs text-muted-foreground">{fighter.weight_class} · {fighter.record}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <span className="font-display font-bold text-accent">${fighter.salary.toLocaleString()}</span>
+                              {isSelected && !isCaptain && (
+                                <Button size="sm" variant="ghost" className="text-accent hover:text-accent hover:bg-accent/10 text-xs" onClick={() => setCaptain(fighter.id)}>
+                                  <Star className="h-3 w-3 mr-1" /> Cap
+                                </Button>
+                              )}
+                              <Button
+                                size="sm"
+                                variant={isSelected ? "default" : "outline"}
+                                className={isSelected ? "bg-primary hover:bg-primary/90 text-primary-foreground" : "border-border text-foreground hover:bg-secondary"}
+                                disabled={disabled}
+                                onClick={() => toggleFighter(fighter.id)}
+                              >
+                                {isSelected ? <Check className="h-4 w-4" /> : "Escalar"}
+                              </Button>
+                            </div>
+                          </motion.div>
+                        );
+                      })}
+                    </>
+                  )}
+                  {prelimFighters.length > 0 && (
+                    <>
+                      <div className="flex items-center gap-2 pt-4">
+                        <Swords className="h-4 w-4 text-muted-foreground" />
+                        <span className="font-display text-sm font-bold uppercase tracking-wider text-muted-foreground">Card Preliminar</span>
+                        <div className="flex-1 h-px bg-border" />
+                      </div>
+                      {prelimFighters.map((fighter: any) => {
+                        const i = idx++;
+                        const isSelected = selected.includes(fighter.id);
+                        const isCaptain = captain === fighter.id;
+                        const canAfford = totalSalary + fighter.salary <= SALARY_CAP;
+                        const disabled = !isSelected && (selected.length >= MAX_FIGHTERS || !canAfford);
+
+                        return (
+                          <motion.div
+                            key={fighter.id}
+                            initial={{ opacity: 0, x: -10 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            transition={{ delay: i * 0.05 }}
+                            className={`glass-card rounded-xl p-4 flex items-center justify-between transition-all ${
+                              isSelected ? "border-primary/40 bg-primary/5" : disabled ? "opacity-50" : "hover:border-border"
+                            }`}
+                          >
+                            <div className="flex items-center gap-4">
+                              <div className={`flex h-12 w-12 items-center justify-center rounded-lg font-display text-lg font-bold ${
+                                isSelected ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"
+                              }`}>
+                                {fighter.country}
+                              </div>
+                              <div>
+                                <div className="flex items-center gap-2">
+                                  <span className="font-display font-bold uppercase">{fighter.name}</span>
+                                  {isCaptain && (
+                                    <span className="text-xs bg-accent/10 text-accent px-2 py-0.5 rounded-full font-semibold flex items-center gap-1">
+                                      <Star className="h-3 w-3" /> Capitão
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-xs text-muted-foreground">{fighter.weight_class} · {fighter.record}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <span className="font-display font-bold text-accent">${fighter.salary.toLocaleString()}</span>
+                              {isSelected && !isCaptain && (
+                                <Button size="sm" variant="ghost" className="text-accent hover:text-accent hover:bg-accent/10 text-xs" onClick={() => setCaptain(fighter.id)}>
+                                  <Star className="h-3 w-3 mr-1" /> Cap
+                                </Button>
+                              )}
+                              <Button
+                                size="sm"
+                                variant={isSelected ? "default" : "outline"}
+                                className={isSelected ? "bg-primary hover:bg-primary/90 text-primary-foreground" : "border-border text-foreground hover:bg-secondary"}
+                                disabled={disabled}
+                                onClick={() => toggleFighter(fighter.id)}
+                              >
+                                {isSelected ? <Check className="h-4 w-4" /> : "Escalar"}
+                              </Button>
+                            </div>
+                          </motion.div>
+                        );
+                      })}
+                    </>
+                  )}
+                </>
+              );
+            })()}
           </div>
         )}
 
