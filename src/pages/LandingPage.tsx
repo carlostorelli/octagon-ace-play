@@ -1,8 +1,9 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Swords, ArrowRight, ChevronRight } from "lucide-react";
+import { ArrowRight, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { FEATURES } from "@/data/mockData";
+import { GloveIcon } from "@/components/ui/oss-input";
 import heroImage from "@/assets/hero-octagon.jpg";
 
 const LandingPage = () => {
@@ -13,10 +14,10 @@ const LandingPage = () => {
         <div className="container flex h-16 items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
-              <Swords className="h-5 w-5 text-primary-foreground" />
+              <GloveIcon className="h-5 w-5 text-primary-foreground" />
             </div>
             <span className="font-display text-xl font-bold tracking-wider uppercase">
-              Fantasy<span className="text-primary">UFC</span>
+              OSS<span className="text-primary"> Fantasy</span>
             </span>
           </div>
           <div className="flex items-center gap-3">
@@ -51,8 +52,8 @@ const LandingPage = () => {
             className="max-w-2xl"
           >
             <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-1.5 text-xs font-medium text-primary">
-              <Swords className="h-3 w-3" />
-              Fantasy Game Oficial de MMA
+              <GloveIcon className="h-3 w-3" />
+              OSS Fantasy — O Fantasy Game de MMA
             </div>
             <h1 className="font-display text-5xl sm:text-7xl font-bold uppercase leading-[0.95] tracking-tight mb-6">
               Monte seu time.{" "}
@@ -141,10 +142,10 @@ const LandingPage = () => {
       <footer className="border-t border-border py-8">
         <div className="container flex flex-col sm:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
           <div className="flex items-center gap-2">
-            <Swords className="h-4 w-4 text-primary" />
-            <span className="font-display uppercase tracking-wider">FantasyUFC</span>
+            <GloveIcon className="h-4 w-4 text-primary" />
+            <span className="font-display uppercase tracking-wider">OSS Fantasy</span>
           </div>
-          <p>© 2025 FantasyUFC. Todos os direitos reservados.</p>
+          <p>© 2026 OSS Fantasy. Todos os direitos reservados.</p>
         </div>
       </footer>
     </div>
