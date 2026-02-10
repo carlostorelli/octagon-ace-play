@@ -14,7 +14,209 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      events: {
+        Row: {
+          created_at: string
+          date: string
+          fights_count: number
+          id: string
+          location: string
+          main_event: string
+          name: string
+          status: string
+        }
+        Insert: {
+          created_at?: string
+          date: string
+          fights_count?: number
+          id?: string
+          location?: string
+          main_event?: string
+          name: string
+          status?: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          fights_count?: number
+          id?: string
+          location?: string
+          main_event?: string
+          name?: string
+          status?: string
+        }
+        Relationships: []
+      }
+      fighters: {
+        Row: {
+          country: string
+          created_at: string
+          id: string
+          name: string
+          nickname: string
+          record: string
+          salary: number
+          weight_class: string
+        }
+        Insert: {
+          country?: string
+          created_at?: string
+          id?: string
+          name: string
+          nickname?: string
+          record?: string
+          salary?: number
+          weight_class?: string
+        }
+        Update: {
+          country?: string
+          created_at?: string
+          id?: string
+          name?: string
+          nickname?: string
+          record?: string
+          salary?: number
+          weight_class?: string
+        }
+        Relationships: []
+      }
+      leaderboard: {
+        Row: {
+          event_id: string | null
+          id: string
+          points: number
+          updated_at: string
+          user_id: string
+          wins: number
+        }
+        Insert: {
+          event_id?: string | null
+          id?: string
+          points?: number
+          updated_at?: string
+          user_id: string
+          wins?: number
+        }
+        Update: {
+          event_id?: string | null
+          id?: string
+          points?: number
+          updated_at?: string
+          user_id?: string
+          wins?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "leaderboard_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lineup_fighters: {
+        Row: {
+          fighter_id: string
+          id: string
+          lineup_id: string
+        }
+        Insert: {
+          fighter_id: string
+          id?: string
+          lineup_id: string
+        }
+        Update: {
+          fighter_id?: string
+          id?: string
+          lineup_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lineup_fighters_fighter_id_fkey"
+            columns: ["fighter_id"]
+            isOneToOne: false
+            referencedRelation: "fighters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lineup_fighters_lineup_id_fkey"
+            columns: ["lineup_id"]
+            isOneToOne: false
+            referencedRelation: "lineups"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lineups: {
+        Row: {
+          captain_fighter_id: string | null
+          created_at: string
+          event_id: string
+          id: string
+          total_salary: number
+          user_id: string
+        }
+        Insert: {
+          captain_fighter_id?: string | null
+          created_at?: string
+          event_id: string
+          id?: string
+          total_salary?: number
+          user_id: string
+        }
+        Update: {
+          captain_fighter_id?: string | null
+          created_at?: string
+          event_id?: string
+          id?: string
+          total_salary?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lineups_captain_fighter_id_fkey"
+            columns: ["captain_fighter_id"]
+            isOneToOne: false
+            referencedRelation: "fighters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lineups_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          display_name: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          display_name?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
