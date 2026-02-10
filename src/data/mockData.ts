@@ -52,12 +52,11 @@ export const MOCK_FIGHTERS = [
   { id: "10", name: "Charles Oliveira", nickname: "Do Bronx", weightClass: "Lightweight", salary: 10000, record: "34-10-0", country: "🇧🇷" },
 ];
 
-export const MOCK_LEAGUES = [
-  { id: "1", name: "Octagon Masters", type: "public" as const, members: 128, maxMembers: 256, prizePool: "R$ 5.000", owner: "Carlos S." },
-  { id: "2", name: "Brazilian Warriors", type: "public" as const, members: 64, maxMembers: 64, prizePool: "R$ 2.500", owner: "Ana P." },
-  { id: "3", name: "KO Kings Private", type: "private" as const, members: 12, maxMembers: 20, prizePool: "R$ 1.000", owner: "João M." },
-  { id: "4", name: "UFC Fanatics", type: "public" as const, members: 230, maxMembers: 500, prizePool: "R$ 10.000", owner: "Pedro L." },
-];
+export const LEAGUE_INFO = {
+  name: "Liga FantasyUFC",
+  members: 42,
+  description: "Liga única de fantasy MMA — acumule pontos e concorra a brindes no sorteio!",
+};
 
 export const MOCK_LEADERBOARD = [
   { rank: 1, user: "Carlos S.", points: 2450, wins: 8, avatar: "CS" },
@@ -74,7 +73,7 @@ export const MOCK_LEADERBOARD = [
 
 export const FEATURES = [
   { icon: Swords, title: "Escale Lutadores", desc: "Monte seu time com salary cap e estratégia" },
-  { icon: Trophy, title: "Ligas & Rankings", desc: "Crie ligas públicas ou privadas com amigos" },
+  { icon: Trophy, title: "Ranking & Sorteio", desc: "Acumule pontos e concorra a brindes" },
   { icon: Zap, title: "Pontuação em Tempo Real", desc: "Acompanhe seus pontos durante o evento" },
   { icon: BarChart3, title: "Estatísticas Avançadas", desc: "Análise detalhada de cada lutador" },
   { icon: Users, title: "Comunidade", desc: "Chat na liga, convites e desafios" },

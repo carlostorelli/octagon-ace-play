@@ -59,7 +59,7 @@ const LandingPage = () => {
               <span className="text-gradient">Domine o Octógono.</span>
             </h1>
             <p className="text-lg text-muted-foreground mb-8 max-w-lg leading-relaxed">
-              Escale lutadores, crie ligas com amigos e ganhe pontos a cada KO, finalização e performance da noite. O fantasy game definitivo do UFC.
+              Escale lutadores, acumule pontos a cada KO, finalização e performance da noite — e concorra a brindes no sorteio! Sem apostas, só diversão.
             </p>
             <div className="flex flex-wrap gap-4">
               <Link to="/dashboard">
@@ -86,12 +86,12 @@ const LandingPage = () => {
             viewport={{ once: true }}
             className="text-center mb-16"
           >
-            <h2 className="font-display text-4xl font-bold uppercase tracking-tight mb-4">
-              Tudo que você precisa para <span className="text-gradient">competir</span>
-            </h2>
-            <p className="text-muted-foreground max-w-md mx-auto">
-              Sistema completo de fantasy MMA com pontuação em tempo real
-            </p>
+              <h2 className="font-display text-4xl font-bold uppercase tracking-tight mb-4">
+                Tudo que você precisa para <span className="text-gradient">se divertir</span>
+              </h2>
+              <p className="text-muted-foreground max-w-md mx-auto">
+                Fantasy MMA entre amigos — pontuação em tempo real e sorteio de brindes
+              </p>
           </motion.div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
