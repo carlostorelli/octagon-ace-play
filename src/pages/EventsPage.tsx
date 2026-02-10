@@ -1,19 +1,41 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Calendar, MapPin, Swords, CheckCircle, Clock } from "lucide-react";
 import AppLayout from "@/components/AppLayout";
+import { OSSInput } from "@/components/ui/oss-input";
 import { MOCK_EVENTS } from "@/data/mockData";
 
 const EventsPage = () => {
+  const [search, setSearch] = useState("");
+
+  const filtered = MOCK_EVENTS.filter(
+    (e) =>
+      e.name.toLowerCase().includes(search.toLowerCase()) ||
+      e.mainEvent.toLowerCase().includes(search.toLowerCase()) ||
+      e.location.toLowerCase().includes(search.toLowerCase())
+  );
+
   return (
     <AppLayout>
       <div className="container py-8 space-y-8">
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-          <h1 className="font-display text-3xl font-bold uppercase tracking-tight mb-1">Eventos UFC</h1>
-          <p className="text-muted-foreground">Rodadas disponíveis para escalação</p>
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+          <div>
+            <h1 className="font-display text-3xl font-bold uppercase tracking-tight mb-1">Eventos UFC</h1>
+            <p className="text-muted-foreground">Rodadas disponíveis para escalação</p>
+          </div>
+          <div className="w-full sm:w-72">
+            <OSSInput
+              variant="search"
+              inputSize="sm"
+              placeholder="Buscar evento ou lutador..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
         </motion.div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {MOCK_EVENTS.map((event, i) => (
+          {filtered.map((event, i) => (
             <motion.div
               key={event.id}
               initial={{ opacity: 0, y: 20 }}
@@ -53,6 +75,12 @@ const EventsPage = () => {
               </div>
             </motion.div>
           ))}
+
+          {filtered.length === 0 && (
+            <div className="col-span-full text-center py-12 text-muted-foreground">
+              Nenhum evento encontrado para "{search}"
+            </div>
+          )}
         </div>
       </div>
     </AppLayout>

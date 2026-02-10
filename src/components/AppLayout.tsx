@@ -1,7 +1,8 @@
 import { Link, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Swords, Trophy, Calendar, Users, BarChart3, Menu, X } from "lucide-react";
+import { Swords, Trophy, Calendar, BarChart3, Menu, X } from "lucide-react";
 import { useState } from "react";
+import { GloveIcon } from "@/components/ui/oss-input";
 
 const navItems = [
   { path: "/dashboard", label: "Dashboard", icon: BarChart3 },
@@ -21,10 +22,10 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
         <div className="container flex h-16 items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary">
-              <Swords className="h-5 w-5 text-primary-foreground" />
+              <GloveIcon className="h-5 w-5 text-primary-foreground" />
             </div>
             <span className="font-display text-xl font-bold tracking-wider uppercase">
-              Fantasy<span className="text-primary">UFC</span>
+              OSS<span className="text-primary"> Fantasy</span>
             </span>
           </Link>
 

@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Swords, DollarSign, Star, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import AppLayout from "@/components/AppLayout";
+import { OSSInput } from "@/components/ui/oss-input";
 import { MOCK_FIGHTERS } from "@/data/mockData";
 
 const SALARY_CAP = 50000;
@@ -11,6 +12,7 @@ const MAX_FIGHTERS = 5;
 const LineupPage = () => {
   const [selected, setSelected] = useState<string[]>([]);
   const [captain, setCaptain] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
 
   const totalSalary = selected.reduce((sum, id) => {
     const f = MOCK_FIGHTERS.find((f) => f.id === id);
@@ -34,9 +36,20 @@ const LineupPage = () => {
   return (
     <AppLayout>
       <div className="container py-8 space-y-8">
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-          <h1 className="font-display text-3xl font-bold uppercase tracking-tight mb-1">Escalação</h1>
-          <p className="text-muted-foreground">Monte seu time para UFC 326</p>
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+          <div>
+            <h1 className="font-display text-3xl font-bold uppercase tracking-tight mb-1">Escalação</h1>
+            <p className="text-muted-foreground">Monte seu time para UFC 326</p>
+          </div>
+          <div className="w-full sm:w-72">
+            <OSSInput
+              variant="search"
+              inputSize="sm"
+              placeholder="Buscar lutador..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </div>
         </motion.div>
 
         {/* Salary Bar */}
@@ -67,7 +80,11 @@ const LineupPage = () => {
 
         {/* Fighter List */}
         <div className="space-y-3">
-          {MOCK_FIGHTERS.map((fighter, i) => {
+          {MOCK_FIGHTERS.filter((f) =>
+            f.name.toLowerCase().includes(search.toLowerCase()) ||
+            f.weightClass.toLowerCase().includes(search.toLowerCase()) ||
+            f.nickname.toLowerCase().includes(search.toLowerCase())
+          ).map((fighter, i) => {
             const isSelected = selected.includes(fighter.id);
             const isCaptain = captain === fighter.id;
             const canAfford = totalSalary + fighter.salary <= SALARY_CAP;
