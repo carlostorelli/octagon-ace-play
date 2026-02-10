@@ -20,15 +20,6 @@ const LineupPage = () => {
   const [captain, setCaptain] = useState<string | null>(null);
   const [search, setSearch] = useState("");
 
-  const { data: fighters = [], isLoading } = useQuery({
-    queryKey: ["fighters"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("fighters").select("*").order("salary", { ascending: false });
-      if (error) throw error;
-      return data;
-    },
-  });
-
   // Get next upcoming event
   const { data: nextEvent } = useQuery({
     queryKey: ["next-event"],
@@ -42,6 +33,22 @@ const LineupPage = () => {
         .maybeSingle();
       if (error) throw error;
       return data;
+    },
+  });
+
+  const { data: fighters = [], isLoading } = useQuery({
+    queryKey: ["fighters", nextEvent?.id],
+    enabled: !!nextEvent?.id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("event_fighters")
+        .select("fighter_id, fighters(*)")
+        .eq("event_id", nextEvent!.id);
+      if (error) throw error;
+      return (data ?? [])
+        .map((ef: any) => ef.fighters)
+        .filter(Boolean)
+        .sort((a: any, b: any) => b.salary - a.salary);
     },
   });
 

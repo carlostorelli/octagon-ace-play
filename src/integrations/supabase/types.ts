@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      event_fighters: {
+        Row: {
+          created_at: string
+          event_id: string
+          fighter_id: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          fighter_id: string
+          id?: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          fighter_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "event_fighters_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "event_fighters_fighter_id_fkey"
+            columns: ["fighter_id"]
+            isOneToOne: false
+            referencedRelation: "fighters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       events: {
         Row: {
           created_at: string
