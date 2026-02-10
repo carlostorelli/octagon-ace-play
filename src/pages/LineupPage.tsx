@@ -1,24 +1,54 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Swords, DollarSign, Star, Check } from "lucide-react";
+import { Swords, DollarSign, Star, Check, Loader2 } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import AppLayout from "@/components/AppLayout";
 import { OSSInput } from "@/components/ui/oss-input";
-import { MOCK_FIGHTERS } from "@/data/mockData";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { toast } from "@/hooks/use-toast";
+import { Tables } from "@/integrations/supabase/types";
 
 const SALARY_CAP = 50000;
 const MAX_FIGHTERS = 5;
 
 const LineupPage = () => {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [selected, setSelected] = useState<string[]>([]);
   const [captain, setCaptain] = useState<string | null>(null);
   const [search, setSearch] = useState("");
 
+  const { data: fighters = [], isLoading } = useQuery({
+    queryKey: ["fighters"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("fighters").select("*").order("salary", { ascending: false });
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Get next upcoming event
+  const { data: nextEvent } = useQuery({
+    queryKey: ["next-event"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("events")
+        .select("*")
+        .eq("status", "upcoming")
+        .order("date", { ascending: true })
+        .limit(1)
+        .maybeSingle();
+      if (error) throw error;
+      return data;
+    },
+  });
+
   const totalSalary = selected.reduce((sum, id) => {
-    const f = MOCK_FIGHTERS.find((f) => f.id === id);
+    const f = fighters.find((f) => f.id === id);
     return sum + (f?.salary ?? 0);
   }, 0);
-
   const remaining = SALARY_CAP - totalSalary;
 
   const toggleFighter = (id: string) => {
@@ -26,12 +56,48 @@ const LineupPage = () => {
       setSelected(selected.filter((s) => s !== id));
       if (captain === id) setCaptain(null);
     } else if (selected.length < MAX_FIGHTERS) {
-      const fighter = MOCK_FIGHTERS.find((f) => f.id === id);
+      const fighter = fighters.find((f) => f.id === id);
       if (fighter && totalSalary + fighter.salary <= SALARY_CAP) {
         setSelected([...selected, id]);
       }
     }
   };
+
+  const confirmMutation = useMutation({
+    mutationFn: async () => {
+      if (!user || !nextEvent || !captain) throw new Error("Dados incompletos");
+
+      // Create lineup
+      const { data: lineup, error: lineupError } = await supabase
+        .from("lineups")
+        .insert({
+          user_id: user.id,
+          event_id: nextEvent.id,
+          captain_fighter_id: captain,
+          total_salary: totalSalary,
+        })
+        .select()
+        .single();
+      if (lineupError) throw lineupError;
+
+      // Insert fighters
+      const { error: fightersError } = await supabase
+        .from("lineup_fighters")
+        .insert(selected.map((fid) => ({ lineup_id: lineup.id, fighter_id: fid })));
+      if (fightersError) throw fightersError;
+
+      return lineup;
+    },
+    onSuccess: () => {
+      toast({ title: "Escalação confirmada! 🥊", description: `Time salvo para ${nextEvent?.name}` });
+      setSelected([]);
+      setCaptain(null);
+      queryClient.invalidateQueries({ queryKey: ["lineups"] });
+    },
+    onError: (err: any) => {
+      toast({ title: "Erro", description: err.message, variant: "destructive" });
+    },
+  });
 
   return (
     <AppLayout>
@@ -39,16 +105,10 @@ const LineupPage = () => {
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div>
             <h1 className="font-display text-3xl font-bold uppercase tracking-tight mb-1">Escalação</h1>
-            <p className="text-muted-foreground">Monte seu time para UFC 326</p>
+            <p className="text-muted-foreground">Monte seu time para {nextEvent?.name ?? "o próximo evento"}</p>
           </div>
           <div className="w-full sm:w-72">
-            <OSSInput
-              variant="search"
-              inputSize="sm"
-              placeholder="Buscar lutador..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
+            <OSSInput variant="search" inputSize="sm" placeholder="Buscar lutador..." value={search} onChange={(e) => setSearch(e.target.value)} />
           </div>
         </motion.div>
 
@@ -65,12 +125,7 @@ const LineupPage = () => {
             </div>
           </div>
           <div className="h-2 rounded-full bg-secondary overflow-hidden">
-            <motion.div
-              className="h-full rounded-full bg-accent"
-              initial={{ width: 0 }}
-              animate={{ width: `${(totalSalary / SALARY_CAP) * 100}%` }}
-              transition={{ type: "spring", stiffness: 100 }}
-            />
+            <motion.div className="h-full rounded-full bg-accent" initial={{ width: 0 }} animate={{ width: `${(totalSalary / SALARY_CAP) * 100}%` }} transition={{ type: "spring", stiffness: 100 }} />
           </div>
           <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
             <Swords className="h-3 w-3" />
@@ -78,88 +133,91 @@ const LineupPage = () => {
           </div>
         </div>
 
+        {!user && (
+          <div className="glass-card rounded-xl p-6 text-center">
+            <p className="text-muted-foreground">Faça login para salvar sua escalação.</p>
+          </div>
+        )}
+
         {/* Fighter List */}
-        <div className="space-y-3">
-          {MOCK_FIGHTERS.filter((f) =>
-            f.name.toLowerCase().includes(search.toLowerCase()) ||
-            f.weightClass.toLowerCase().includes(search.toLowerCase()) ||
-            f.nickname.toLowerCase().includes(search.toLowerCase())
-          ).map((fighter, i) => {
-            const isSelected = selected.includes(fighter.id);
-            const isCaptain = captain === fighter.id;
-            const canAfford = totalSalary + fighter.salary <= SALARY_CAP;
-            const disabled = !isSelected && (selected.length >= MAX_FIGHTERS || !canAfford);
+        {isLoading ? (
+          <div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+        ) : (
+          <div className="space-y-3">
+            {fighters
+              .filter((f) =>
+                f.name.toLowerCase().includes(search.toLowerCase()) ||
+                f.weight_class.toLowerCase().includes(search.toLowerCase()) ||
+                f.nickname.toLowerCase().includes(search.toLowerCase())
+              )
+              .map((fighter, i) => {
+                const isSelected = selected.includes(fighter.id);
+                const isCaptain = captain === fighter.id;
+                const canAfford = totalSalary + fighter.salary <= SALARY_CAP;
+                const disabled = !isSelected && (selected.length >= MAX_FIGHTERS || !canAfford);
 
-            return (
-              <motion.div
-                key={fighter.id}
-                initial={{ opacity: 0, x: -10 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.05 }}
-                className={`glass-card rounded-xl p-4 flex items-center justify-between transition-all ${
-                  isSelected ? "border-primary/40 bg-primary/5" : disabled ? "opacity-50" : "hover:border-border"
-                }`}
-              >
-                <div className="flex items-center gap-4">
-                  <div className={`flex h-12 w-12 items-center justify-center rounded-lg font-display text-lg font-bold ${
-                    isSelected ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"
-                  }`}>
-                    {fighter.country}
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <span className="font-display font-bold uppercase">{fighter.name}</span>
-                      {isCaptain && (
-                        <span className="text-xs bg-accent/10 text-accent px-2 py-0.5 rounded-full font-semibold flex items-center gap-1">
-                          <Star className="h-3 w-3" /> Capitão
-                        </span>
-                      )}
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      {fighter.weightClass} · {fighter.record}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <span className="font-display font-bold text-accent">${fighter.salary.toLocaleString()}</span>
-                  {isSelected && !isCaptain && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="text-accent hover:text-accent hover:bg-accent/10 text-xs"
-                      onClick={() => setCaptain(fighter.id)}
-                    >
-                      <Star className="h-3 w-3 mr-1" /> Cap
-                    </Button>
-                  )}
-                  <Button
-                    size="sm"
-                    variant={isSelected ? "default" : "outline"}
-                    className={isSelected
-                      ? "bg-primary hover:bg-primary/90 text-primary-foreground"
-                      : "border-border text-foreground hover:bg-secondary"
-                    }
-                    disabled={disabled}
-                    onClick={() => toggleFighter(fighter.id)}
+                return (
+                  <motion.div
+                    key={fighter.id}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.05 }}
+                    className={`glass-card rounded-xl p-4 flex items-center justify-between transition-all ${
+                      isSelected ? "border-primary/40 bg-primary/5" : disabled ? "opacity-50" : "hover:border-border"
+                    }`}
                   >
-                    {isSelected ? <Check className="h-4 w-4" /> : "Escalar"}
-                  </Button>
-                </div>
-              </motion.div>
-            );
-          })}
-        </div>
+                    <div className="flex items-center gap-4">
+                      <div className={`flex h-12 w-12 items-center justify-center rounded-lg font-display text-lg font-bold ${
+                        isSelected ? "bg-primary text-primary-foreground" : "bg-secondary text-muted-foreground"
+                      }`}>
+                        {fighter.country}
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-display font-bold uppercase">{fighter.name}</span>
+                          {isCaptain && (
+                            <span className="text-xs bg-accent/10 text-accent px-2 py-0.5 rounded-full font-semibold flex items-center gap-1">
+                              <Star className="h-3 w-3" /> Capitão
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground">{fighter.weight_class} · {fighter.record}</p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      <span className="font-display font-bold text-accent">${fighter.salary.toLocaleString()}</span>
+                      {isSelected && !isCaptain && (
+                        <Button size="sm" variant="ghost" className="text-accent hover:text-accent hover:bg-accent/10 text-xs" onClick={() => setCaptain(fighter.id)}>
+                          <Star className="h-3 w-3 mr-1" /> Cap
+                        </Button>
+                      )}
+                      <Button
+                        size="sm"
+                        variant={isSelected ? "default" : "outline"}
+                        className={isSelected ? "bg-primary hover:bg-primary/90 text-primary-foreground" : "border-border text-foreground hover:bg-secondary"}
+                        disabled={disabled}
+                        onClick={() => toggleFighter(fighter.id)}
+                      >
+                        {isSelected ? <Check className="h-4 w-4" /> : "Escalar"}
+                      </Button>
+                    </div>
+                  </motion.div>
+                );
+              })}
+          </div>
+        )}
 
         {/* Confirm */}
-        {selected.length === MAX_FIGHTERS && captain && (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50"
-          >
-            <Button size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground font-display uppercase tracking-wider text-base px-10 glow shadow-2xl">
-              Confirmar Escalação
+        {selected.length === MAX_FIGHTERS && captain && user && (
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
+            <Button
+              size="lg"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground font-display uppercase tracking-wider text-base px-10 glow shadow-2xl"
+              onClick={() => confirmMutation.mutate()}
+              disabled={confirmMutation.isPending}
+            >
+              {confirmMutation.isPending ? "Salvando..." : "Confirmar Escalação"}
             </Button>
           </motion.div>
         )}
