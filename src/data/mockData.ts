@@ -22,9 +22,9 @@ export const MOCK_EVENTS = [
   {
     id: "3",
     name: "UFC Fight Night: Bautista vs Oliveira",
-    date: "2026-02-10",
+    date: "2026-02-08",
     location: "Las Vegas, NV (APEX)",
-    status: "upcoming" as const,
+    status: "completed" as const,
     fightsCount: 11,
     mainEvent: "Mario Bautista vs Vinicius Oliveira",
   },
