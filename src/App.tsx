@@ -6,9 +6,9 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import EventsPage from "./pages/EventsPage";
-
 import LineupPage from "./pages/LineupPage";
 import LeaderboardPage from "./pages/LeaderboardPage";
+import InputShowcase from "./pages/InputShowcase";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +26,7 @@ const App = () => (
           
           <Route path="/lineup" element={<LineupPage />} />
           <Route path="/leaderboard" element={<LeaderboardPage />} />
+          <Route path="/components/input" element={<InputShowcase />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

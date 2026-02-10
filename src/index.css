@@ -33,8 +33,16 @@
     --border: 220 15% 18%;
     --input: 220 15% 18%;
     --ring: 0 80% 50%;
+    --success: 142 70% 45%;
+    --success-foreground: 0 0% 100%;
 
     --radius: 0.5rem;
+
+    --input-surface: 220 18% 11%;
+    --input-border: 220 15% 22%;
+    --input-border-hover: 220 12% 30%;
+    --input-border-focus: 0 80% 50%;
+    --input-glow: 0 0 12px hsl(0 80% 50% / 0.2);
 
     --sidebar-background: 220 18% 8%;
     --sidebar-foreground: 0 0% 90%;
