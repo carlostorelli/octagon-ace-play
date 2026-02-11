@@ -12,6 +12,11 @@ import LeaderboardPage from "./pages/LeaderboardPage";
 import AuthPage from "./pages/AuthPage";
 import InputShowcase from "./pages/InputShowcase";
 import NotFound from "./pages/NotFound";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminEvents from "./pages/admin/AdminEvents";
+import AdminFighters from "./pages/admin/AdminFighters";
+import AdminEventCard from "./pages/admin/AdminEventCard";
+import AdminScoring from "./pages/admin/AdminScoring";
 
 const queryClient = new QueryClient();
 
@@ -30,6 +35,11 @@ const App = () => (
             <Route path="/lineup" element={<LineupPage />} />
             <Route path="/leaderboard" element={<LeaderboardPage />} />
             <Route path="/components/input" element={<InputShowcase />} />
+            <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/admin/events" element={<AdminEvents />} />
+            <Route path="/admin/fighters" element={<AdminFighters />} />
+            <Route path="/admin/events/:eventId/card" element={<AdminEventCard />} />
+            <Route path="/admin/scoring" element={<AdminScoring />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
