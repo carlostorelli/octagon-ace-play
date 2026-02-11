@@ -11,7 +11,7 @@ import { toast } from "@/hooks/use-toast";
 import { Tables } from "@/integrations/supabase/types";
 
 const SALARY_CAP = 50000;
-const MAX_FIGHTERS = 5;
+const MAX_FIGHTERS = 7;
 
 const LineupPage = () => {
   const { user } = useAuth();
