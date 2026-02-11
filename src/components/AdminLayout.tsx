@@ -7,8 +7,9 @@ import { useEffect } from "react";
 
 const adminNav = [
   { path: "/admin", label: "Visão Geral", icon: Shield },
+  { path: "/admin/users", label: "Usuários", icon: Users },
   { path: "/admin/events", label: "Eventos", icon: Calendar },
-  { path: "/admin/fighters", label: "Lutadores", icon: Users },
+  { path: "/admin/fighters", label: "Lutadores", icon: Swords },
   { path: "/admin/scoring", label: "Pontuação", icon: Settings },
 ];
 

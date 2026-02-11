@@ -17,6 +17,7 @@ import AdminEvents from "./pages/admin/AdminEvents";
 import AdminFighters from "./pages/admin/AdminFighters";
 import AdminEventCard from "./pages/admin/AdminEventCard";
 import AdminScoring from "./pages/admin/AdminScoring";
+import AdminUsers from "./pages/admin/AdminUsers";
 
 const queryClient = new QueryClient();
 
@@ -36,6 +37,7 @@ const App = () => (
             <Route path="/leaderboard" element={<LeaderboardPage />} />
             <Route path="/components/input" element={<InputShowcase />} />
             <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/admin/users" element={<AdminUsers />} />
             <Route path="/admin/events" element={<AdminEvents />} />
             <Route path="/admin/fighters" element={<AdminFighters />} />
             <Route path="/admin/events/:eventId/card" element={<AdminEventCard />} />
