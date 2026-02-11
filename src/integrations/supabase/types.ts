@@ -68,6 +68,7 @@ export type Database = {
           location: string
           main_event: string
           name: string
+          preview_notes: string
           status: string
         }
         Insert: {
@@ -78,6 +79,7 @@ export type Database = {
           location?: string
           main_event?: string
           name: string
+          preview_notes?: string
           status?: string
         }
         Update: {
@@ -88,6 +90,7 @@ export type Database = {
           location?: string
           main_event?: string
           name?: string
+          preview_notes?: string
           status?: string
         }
         Relationships: []

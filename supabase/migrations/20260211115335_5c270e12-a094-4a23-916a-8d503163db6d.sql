@@ -1,0 +1,1 @@
+ALTER TABLE public.events ADD COLUMN preview_notes text NOT NULL DEFAULT '';
