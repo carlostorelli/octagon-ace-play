@@ -1,8 +1,8 @@
 import { Link, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Swords, Trophy, Calendar, BarChart3, Menu, X } from "lucide-react";
+import { Swords, Trophy, Calendar, BarChart3, Menu, X, Shield } from "lucide-react";
 import { useState } from "react";
-
+import { useAdmin } from "@/hooks/useAdmin";
 
 const navItems = [
   { path: "/dashboard", label: "Dashboard", icon: BarChart3 },
@@ -14,6 +14,7 @@ const navItems = [
 const AppLayout = ({ children }: { children: React.ReactNode }) => {
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { isAdmin } = useAdmin();
 
   return (
     <div className="min-h-screen bg-background">
@@ -45,6 +46,19 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
                 </Link>
               );
             })}
+            {isAdmin && (
+              <Link
+                to="/admin"
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  location.pathname.startsWith("/admin")
+                    ? "text-primary-foreground bg-primary"
+                    : "text-accent hover:bg-secondary"
+                }`}
+              >
+                <Shield className="h-4 w-4" />
+                Admin
+              </Link>
+            )}
           </nav>
 
           {/* Mobile toggle */}
@@ -81,6 +95,20 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
                 </Link>
               );
             })}
+            {isAdmin && (
+              <Link
+                to="/admin"
+                onClick={() => setMobileOpen(false)}
+                className={`flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors ${
+                  location.pathname.startsWith("/admin")
+                    ? "text-primary-foreground bg-primary"
+                    : "text-accent hover:bg-secondary"
+                }`}
+              >
+                <Shield className="h-4 w-4" />
+                Admin
+              </Link>
+            )}
           </motion.nav>
         )}
       </header>
