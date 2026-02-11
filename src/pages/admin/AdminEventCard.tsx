@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { motion } from "framer-motion";
-import { Plus, Trash2, Loader2, Calculator, GripVertical, FileText, Save } from "lucide-react";
+import { Plus, Trash2, Loader2, Calculator, GripVertical, FileText, Save, Upload, Download } from "lucide-react";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "react-router-dom";
@@ -15,11 +15,13 @@ import { oddsToSalary, formatOdds } from "@/lib/odds-to-salary";
 const AdminEventCard = () => {
   const { eventId } = useParams<{ eventId: string }>();
   const queryClient = useQueryClient();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedFighter, setSelectedFighter] = useState("");
   const [cardType, setCardType] = useState("main");
   const [fightOrder, setFightOrder] = useState(1);
   const [odds, setOdds] = useState(0);
   const [previewNotes, setPreviewNotes] = useState<string | null>(null);
+  const [uploadingPdf, setUploadingPdf] = useState(false);
 
   const { data: event } = useQuery({
     queryKey: ["admin-event", eventId],
@@ -135,6 +137,31 @@ const AdminEventCard = () => {
     onError: (err: any) => toast({ title: "Erro ao salvar", description: err.message, variant: "destructive" }),
   });
 
+  const handlePdfUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !eventId) return;
+    if (file.type !== "application/pdf") {
+      toast({ title: "Apenas arquivos PDF são aceitos", variant: "destructive" });
+      return;
+    }
+    setUploadingPdf(true);
+    try {
+      const filePath = `${eventId}/${Date.now()}-${file.name}`;
+      const { error: uploadErr } = await supabase.storage.from("event-pdfs").upload(filePath, file, { upsert: true });
+      if (uploadErr) throw uploadErr;
+      const { data: urlData } = supabase.storage.from("event-pdfs").getPublicUrl(filePath);
+      const { error: updateErr } = await supabase.from("events").update({ preview_pdf_url: urlData.publicUrl } as any).eq("id", eventId);
+      if (updateErr) throw updateErr;
+      toast({ title: "PDF enviado com sucesso!" });
+      queryClient.invalidateQueries({ queryKey: ["admin-event", eventId] });
+    } catch (err: any) {
+      toast({ title: "Erro ao enviar PDF", description: err.message, variant: "destructive" });
+    } finally {
+      setUploadingPdf(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
   const handleDragEnd = (result: DropResult) => {
     if (!result.destination) return;
     const cardType = result.source.droppableId;
@@ -242,6 +269,30 @@ const AdminEventCard = () => {
             {savePreviewNotesMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
             Salvar Previsões
           </Button>
+
+          <div className="border-t border-border pt-4 space-y-3">
+            <h3 className="text-xs font-medium uppercase tracking-wider text-muted-foreground font-display">PDF — Análise Completa</h3>
+            <div className="flex flex-wrap items-center gap-3">
+              <input ref={fileInputRef} type="file" accept=".pdf" className="hidden" onChange={handlePdfUpload} />
+              <Button variant="outline" onClick={() => fileInputRef.current?.click()} disabled={uploadingPdf}>
+                {uploadingPdf ? <Loader2 className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
+                {uploadingPdf ? "Enviando..." : "Enviar PDF"}
+              </Button>
+              {(event as any)?.preview_pdf_url && (
+                <Button variant="outline" asChild>
+                  <a href={(event as any).preview_pdf_url} target="_blank" rel="noopener noreferrer">
+                    <Download className="h-4 w-4" />
+                    Download PDF
+                  </a>
+                </Button>
+              )}
+            </div>
+            {(event as any)?.preview_pdf_url && (
+              <p className="text-xs text-muted-foreground truncate max-w-md">
+                Arquivo atual: {(event as any).preview_pdf_url.split('/').pop()}
+              </p>
+            )}
+          </div>
         </div>
 
         {loadingEF ? (
