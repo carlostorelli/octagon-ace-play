@@ -16,6 +16,7 @@ export default {
       fontFamily: {
         display: ["Oswald", "sans-serif"],
         body: ["Inter", "sans-serif"],
+        mono: ["JetBrains Mono", "monospace"],
       },
       colors: {
         border: "hsl(var(--border))",
