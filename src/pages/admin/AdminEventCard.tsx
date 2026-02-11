@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Plus, Trash2, Loader2, Calculator, GripVertical } from "lucide-react";
+import { Plus, Trash2, Loader2, Calculator, GripVertical, FileText, Save } from "lucide-react";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "react-router-dom";
 import AdminLayout from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { OSSInput } from "@/components/ui/oss-input";
+import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { oddsToSalary, formatOdds } from "@/lib/odds-to-salary";
@@ -18,6 +19,7 @@ const AdminEventCard = () => {
   const [cardType, setCardType] = useState("main");
   const [fightOrder, setFightOrder] = useState(1);
   const [odds, setOdds] = useState(0);
+  const [previewNotes, setPreviewNotes] = useState<string | null>(null);
 
   const { data: event } = useQuery({
     queryKey: ["admin-event", eventId],
@@ -121,6 +123,18 @@ const AdminEventCard = () => {
     },
   });
 
+  const savePreviewNotesMutation = useMutation({
+    mutationFn: async (notes: string) => {
+      const { error } = await supabase.from("events").update({ preview_notes: notes } as any).eq("id", eventId!);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: "Previsões salvas com sucesso!" });
+      queryClient.invalidateQueries({ queryKey: ["admin-event", eventId] });
+    },
+    onError: (err: any) => toast({ title: "Erro ao salvar", description: err.message, variant: "destructive" }),
+  });
+
   const handleDragEnd = (result: DropResult) => {
     if (!result.destination) return;
     const cardType = result.source.droppableId;
@@ -206,7 +220,30 @@ const AdminEventCard = () => {
           Recalcular Todos os Salários pelas Odds
         </Button>
 
-        {/* Card list with drag and drop */}
+        {/* Previsões do OSS */}
+        <div className="glass-card rounded-xl p-6 space-y-4">
+          <div className="flex items-center gap-2">
+            <FileText className="h-4 w-4 text-primary" />
+            <h2 className="font-display text-sm font-bold uppercase tracking-wider text-primary">Previsões do OSS</h2>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Panorama e previsões do evento. Este texto ficará visível para os usuários na página de escalação.
+          </p>
+          <Textarea
+            className="min-h-[180px] bg-input-surface border-[hsl(var(--input-border))] text-sm"
+            placeholder="Cole aqui o resumo, previsões e análises do evento..."
+            value={previewNotes ?? event?.preview_notes ?? ""}
+            onChange={(e) => setPreviewNotes(e.target.value)}
+          />
+          <Button
+            onClick={() => savePreviewNotesMutation.mutate(previewNotes ?? event?.preview_notes ?? "")}
+            disabled={savePreviewNotesMutation.isPending}
+          >
+            {savePreviewNotesMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+            Salvar Previsões
+          </Button>
+        </div>
+
         {loadingEF ? (
           <div className="flex justify-center py-10"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
         ) : (
