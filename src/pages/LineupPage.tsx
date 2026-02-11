@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Swords, DollarSign, Star, Check, Loader2 } from "lucide-react";
+import { Swords, DollarSign, Star, Check, Loader2, Download, FileText } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import AppLayout from "@/components/AppLayout";
@@ -146,6 +146,26 @@ const LineupPage = () => {
             {selected.length}/{MAX_FIGHTERS} lutadores · {captain ? "Capitão definido ✓" : "Selecione um capitão"}
           </div>
         </div>
+
+        {/* Previsões do OSS */}
+        {nextEvent && (nextEvent.preview_notes || nextEvent.preview_pdf_url) && (
+          <div className="glass-card rounded-xl p-5 space-y-3">
+            <div className="flex items-center gap-2">
+              <FileText className="h-4 w-4 text-primary" />
+              <span className="font-display text-sm font-bold uppercase tracking-wider text-primary">Previsões do OSS</span>
+            </div>
+            {nextEvent.preview_notes && (
+              <p className="text-sm text-muted-foreground whitespace-pre-line">{nextEvent.preview_notes}</p>
+            )}
+            {nextEvent.preview_pdf_url && (
+              <a href={nextEvent.preview_pdf_url} target="_blank" rel="noopener noreferrer">
+                <Button variant="outline" size="sm" className="gap-2">
+                  <Download className="h-4 w-4" /> Download Análise Completa (PDF)
+                </Button>
+              </a>
+            )}
+          </div>
+        )}
 
         {!user && (
           <div className="glass-card rounded-xl p-6 text-center">
