@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
-import { Calendar, Users, Trophy, Swords, TrendingUp, Loader2, LogOut } from "lucide-react";
+import { Calendar, Users, Trophy, Swords, TrendingUp, Loader2, LogOut, ArrowRight, Clock, MapPin } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import AppLayout from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
@@ -35,6 +35,23 @@ const Dashboard = () => {
         .maybeSingle();
       if (error) throw error;
       return data;
+    },
+  });
+
+  // Fetch main card fights for the highlight
+  const { data: mainFights = [] } = useQuery({
+    queryKey: ["round-highlight-fights", nextEvent?.id],
+    enabled: !!nextEvent?.id,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("event_fighters")
+        .select("fighter_id, card_type, fight_order, fighters(name, country, salary, weight_class)")
+        .eq("event_id", nextEvent!.id)
+        .eq("card_type", "main")
+        .order("fight_order", { ascending: true })
+        .limit(10);
+      if (error) throw error;
+      return data ?? [];
     },
   });
 
@@ -109,24 +126,76 @@ const Dashboard = () => {
           <StatCard icon={Calendar} label="Eventos" value={String(stats?.eventsCount ?? 0)} />
         </div>
 
-        {/* Next Event */}
+        {/* Round Highlight */}
         {nextEvent && (
-          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="glass-card rounded-xl p-6">
-            <div className="flex items-center gap-2 mb-4">
-              <Swords className="h-5 w-5 text-primary" />
-              <h2 className="font-display text-xl font-bold uppercase">Próximo Evento</h2>
-            </div>
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-              <div>
-                <h3 className="font-display text-2xl font-bold">{nextEvent.name}</h3>
-                <p className="text-muted-foreground">{nextEvent.main_event}</p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  {nextEvent.date} · {nextEvent.location} · {nextEvent.fights_count} lutas
-                </p>
-              </div>
-              <div className="flex items-center gap-2 rounded-full bg-accent/10 text-accent px-4 py-2 text-sm font-semibold">
-                <div className="h-2 w-2 rounded-full bg-accent animate-pulse" />
-                Escalação Aberta
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+            <div className="glass-card rounded-xl overflow-hidden relative">
+              {/* Top accent bar */}
+              <div className="h-1 w-full bg-gradient-to-r from-primary via-accent to-primary" />
+
+              <div className="p-6 space-y-5">
+                {/* Header */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="font-mono text-xs uppercase tracking-widest text-primary">&gt; Rodada Ativa</span>
+                      <div className="flex items-center gap-1.5 rounded-full bg-accent/10 text-accent px-3 py-1 text-xs font-semibold">
+                        <div className="h-1.5 w-1.5 rounded-full bg-accent animate-pulse" />
+                        Escalação Aberta
+                      </div>
+                    </div>
+                    <h2 className="font-display text-3xl font-bold uppercase tracking-tight">{nextEvent.name}</h2>
+                    <div className="flex flex-wrap items-center gap-4 mt-2 text-sm text-muted-foreground">
+                      <span className="flex items-center gap-1.5"><Clock className="h-3.5 w-3.5" />{nextEvent.date}</span>
+                      <span className="flex items-center gap-1.5"><MapPin className="h-3.5 w-3.5" />{nextEvent.location}</span>
+                      <span className="flex items-center gap-1.5"><Swords className="h-3.5 w-3.5" />{nextEvent.fights_count} lutas</span>
+                    </div>
+                  </div>
+                  <Link to="/lineup">
+                    <Button size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground font-display uppercase tracking-wider glow">
+                      Escalar Time <ArrowRight className="h-4 w-4 ml-2" />
+                    </Button>
+                  </Link>
+                </div>
+
+                {/* Main Event highlight */}
+                {nextEvent.main_event && (
+                  <div className="rounded-lg border border-primary/20 bg-primary/5 p-4 text-center">
+                    <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground">Main Event</span>
+                    <p className="font-display text-xl font-bold uppercase tracking-wide mt-1">{nextEvent.main_event}</p>
+                  </div>
+                )}
+
+                {/* Top fights preview */}
+                {mainFights.length > 0 && (
+                  <div>
+                    <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-3 block">Lutas Principais</span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      {(() => {
+                        // Group fighters by fight_order into pairs
+                        const fightGroups: Record<number, any[]> = {};
+                        mainFights.forEach((f: any) => {
+                          const order = f.fight_order;
+                          if (!fightGroups[order]) fightGroups[order] = [];
+                          fightGroups[order].push(f);
+                        });
+                        return Object.entries(fightGroups).slice(0, 4).map(([order, fighters]) => (
+                          <div key={order} className="rounded-lg bg-secondary/50 border border-border/50 p-3 flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm">{(fighters[0]?.fighters as any)?.country}</span>
+                              <span className="font-display text-sm font-bold uppercase">{(fighters[0]?.fighters as any)?.name}</span>
+                            </div>
+                            <span className="font-mono text-xs text-muted-foreground">vs</span>
+                            <div className="flex items-center gap-2">
+                              <span className="font-display text-sm font-bold uppercase">{(fighters[1]?.fighters as any)?.name ?? "TBD"}</span>
+                              <span className="text-sm">{(fighters[1]?.fighters as any)?.country}</span>
+                            </div>
+                          </div>
+                        ));
+                      })()}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </motion.div>
