@@ -1,6 +1,6 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Calendar, Users, Swords, Settings, ArrowLeft, Shield, Loader2 } from "lucide-react";
+import { Calendar, Users, Swords, Settings, ArrowLeft, Shield, Loader2, Wrench } from "lucide-react";
 import { useAdmin } from "@/hooks/useAdmin";
 import { useAuth } from "@/hooks/useAuth";
 import { useEffect } from "react";
@@ -11,6 +11,7 @@ const adminNav = [
   { path: "/admin/events", label: "Eventos", icon: Calendar },
   { path: "/admin/fighters", label: "Lutadores", icon: Swords },
   { path: "/admin/scoring", label: "Pontuação", icon: Settings },
+  { path: "/admin/settings", label: "Configurações", icon: Wrench },
 ];
 
 const AdminLayout = ({ children }: { children: React.ReactNode }) => {
