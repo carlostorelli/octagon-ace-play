@@ -101,15 +101,16 @@ export const FEATURES = [
 ];
 
 export const SCORING_RULES = [
-  { action: "Vitória", points: 100 },
-  { action: "KO/TKO", points: 150 },
-  { action: "Finalização", points: 130 },
-  { action: "Decisão Unânime", points: 80 },
-  { action: "Knockdown", points: 40 },
-  { action: "Queda (Takedown)", points: 30 },
-  { action: "Controle de Grade", points: 20 },
-  { action: "Tentativa de Finalização", points: 15 },
-  { action: "Bônus Performance da Noite", points: 200 },
-  { action: "Bônus Luta da Noite", points: 150 },
-  { action: "Capitão (2x pontos)", points: 0 },
+  { action: "Vencedor (3R)", points: 2 },
+  { action: "Método (3R)", points: 1 },
+  { action: "Round (3R)", points: 0.5 },
+  { action: "Vencedor (5R)", points: 4 },
+  { action: "Método (5R)", points: 2 },
+  { action: "Round (5R)", points: 1 },
+  { action: "Vencedor (Cinturão)", points: 5 },
+  { action: "Método (Cinturão)", points: 2.5 },
+  { action: "Round (Cinturão)", points: 1.5 },
+  { action: "Luta da Noite", points: 0.5 },
+  { action: "Performance da Noite", points: 0.5 },
+  { action: "Fato da Noite", points: 0.5 },
 ];
