@@ -98,6 +98,57 @@ export type Database = {
         }
         Relationships: []
       }
+      fight_results: {
+        Row: {
+          created_at: string
+          fight_id: string
+          id: string
+          is_fatn: boolean
+          is_fotn: boolean
+          method: string | null
+          potn_fighter_ids: string[] | null
+          round: number | null
+          winner_fighter_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          fight_id: string
+          id?: string
+          is_fatn?: boolean
+          is_fotn?: boolean
+          method?: string | null
+          potn_fighter_ids?: string[] | null
+          round?: number | null
+          winner_fighter_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          fight_id?: string
+          id?: string
+          is_fatn?: boolean
+          is_fotn?: boolean
+          method?: string | null
+          potn_fighter_ids?: string[] | null
+          round?: number | null
+          winner_fighter_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fight_results_fight_id_fkey"
+            columns: ["fight_id"]
+            isOneToOne: true
+            referencedRelation: "fights"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fight_results_winner_fighter_id_fkey"
+            columns: ["winner_fighter_id"]
+            isOneToOne: false
+            referencedRelation: "fighters"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fighters: {
         Row: {
           country: string
@@ -130,6 +181,67 @@ export type Database = {
           weight_class?: string
         }
         Relationships: []
+      }
+      fights: {
+        Row: {
+          card_type: string
+          created_at: string
+          event_id: string
+          fight_order: number
+          fight_type: string
+          fighter_a_id: string
+          fighter_b_id: string
+          id: string
+          odds_fighter_a: number | null
+          odds_fighter_b: number | null
+        }
+        Insert: {
+          card_type?: string
+          created_at?: string
+          event_id: string
+          fight_order?: number
+          fight_type?: string
+          fighter_a_id: string
+          fighter_b_id: string
+          id?: string
+          odds_fighter_a?: number | null
+          odds_fighter_b?: number | null
+        }
+        Update: {
+          card_type?: string
+          created_at?: string
+          event_id?: string
+          fight_order?: number
+          fight_type?: string
+          fighter_a_id?: string
+          fighter_b_id?: string
+          id?: string
+          odds_fighter_a?: number | null
+          odds_fighter_b?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fights_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fights_fighter_a_id_fkey"
+            columns: ["fighter_a_id"]
+            isOneToOne: false
+            referencedRelation: "fighters"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fights_fighter_b_id_fkey"
+            columns: ["fighter_b_id"]
+            isOneToOne: false
+            referencedRelation: "fighters"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       leaderboard: {
         Row: {
@@ -237,6 +349,64 @@ export type Database = {
             columns: ["event_id"]
             isOneToOne: false
             referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      predictions: {
+        Row: {
+          created_at: string
+          event_id: string
+          fight_id: string
+          id: string
+          method: string | null
+          round: number | null
+          updated_at: string
+          user_id: string
+          winner_fighter_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_id: string
+          fight_id: string
+          id?: string
+          method?: string | null
+          round?: number | null
+          updated_at?: string
+          user_id: string
+          winner_fighter_id: string
+        }
+        Update: {
+          created_at?: string
+          event_id?: string
+          fight_id?: string
+          id?: string
+          method?: string | null
+          round?: number | null
+          updated_at?: string
+          user_id?: string
+          winner_fighter_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "predictions_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "predictions_fight_id_fkey"
+            columns: ["fight_id"]
+            isOneToOne: false
+            referencedRelation: "fights"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "predictions_winner_fighter_id_fkey"
+            columns: ["winner_fighter_id"]
+            isOneToOne: false
+            referencedRelation: "fighters"
             referencedColumns: ["id"]
           },
         ]
