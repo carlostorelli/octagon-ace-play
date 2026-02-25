@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Plus, Pencil, Trash2, Loader2, Swords } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, Swords, Users } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import AdminLayout from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
@@ -135,8 +135,11 @@ const AdminEvents = () => {
                   <p className="text-xs text-muted-foreground">{event.date} · {event.location} · {event.fights_count} lutas</p>
                 </div>
                 <div className="flex items-center gap-1">
+                  <Link to={`/admin/events/${event.id}/fights`}>
+                    <Button size="sm" variant="ghost" className="text-primary" title="Gerenciar Lutas"><Swords className="h-4 w-4" /></Button>
+                  </Link>
                   <Link to={`/admin/events/${event.id}/card`}>
-                    <Button size="sm" variant="ghost" className="text-accent"><Swords className="h-4 w-4" /></Button>
+                    <Button size="sm" variant="ghost" className="text-accent" title="Card / Previsões"><Users className="h-4 w-4" /></Button>
                   </Link>
                   <Button size="sm" variant="ghost" onClick={() => startEdit(event)}><Pencil className="h-4 w-4" /></Button>
                   <Button size="sm" variant="ghost" className="text-destructive" onClick={() => deleteMutation.mutate(event.id)}><Trash2 className="h-4 w-4" /></Button>

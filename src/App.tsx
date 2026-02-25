@@ -19,6 +19,7 @@ import AdminEventCard from "./pages/admin/AdminEventCard";
 import AdminScoring from "./pages/admin/AdminScoring";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminSettings from "./pages/admin/AdminSettings";
+import AdminFights from "./pages/admin/AdminFights";
 
 const queryClient = new QueryClient();
 
@@ -42,6 +43,7 @@ const App = () => (
             <Route path="/admin/events" element={<AdminEvents />} />
             <Route path="/admin/fighters" element={<AdminFighters />} />
             <Route path="/admin/events/:eventId/card" element={<AdminEventCard />} />
+            <Route path="/admin/events/:eventId/fights" element={<AdminFights />} />
             <Route path="/admin/scoring" element={<AdminScoring />} />
             <Route path="/admin/settings" element={<AdminSettings />} />
             <Route path="*" element={<NotFound />} />
