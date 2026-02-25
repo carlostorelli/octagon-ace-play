@@ -75,16 +75,33 @@ const Dashboard = () => {
     },
   });
 
-  const { data: stats } = useQuery({
-    queryKey: ["dashboard-stats"],
+  // User's own points and rank
+  const { data: myStats } = useQuery({
+    queryKey: ["my-stats", user?.id],
+    enabled: !!user?.id,
     queryFn: async () => {
-      const [eventsRes, fightersRes] = await Promise.all([
-        supabase.from("events").select("id", { count: "exact", head: true }),
-        supabase.from("fighters").select("id", { count: "exact", head: true }),
-      ]);
+      // Get user's general leaderboard entry
+      const { data: myEntry } = await supabase
+        .from("leaderboard")
+        .select("points")
+        .is("event_id", null)
+        .eq("user_id", user!.id)
+        .maybeSingle();
+
+      // Get rank by counting users with more points
+      let rank = "—";
+      if (myEntry) {
+        const { count } = await supabase
+          .from("leaderboard")
+          .select("id", { count: "exact", head: true })
+          .is("event_id", null)
+          .gt("points", myEntry.points);
+        rank = String((count ?? 0) + 1) + "º";
+      }
+
       return {
-        eventsCount: eventsRes.count ?? 0,
-        fightersCount: fightersRes.count ?? 0,
+        points: myEntry?.points ?? 0,
+        rank,
       };
     },
   });
@@ -183,11 +200,9 @@ const Dashboard = () => {
         </motion.div>
 
         {/* Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard icon={Trophy} label="Seus Pontos" value="—" accent />
-          <StatCard icon={TrendingUp} label="Ranking Geral" value="—" />
-          <StatCard icon={Swords} label="Lutadores" value={String(stats?.fightersCount ?? 0)} />
-          <StatCard icon={Calendar} label="Eventos" value={String(stats?.eventsCount ?? 0)} />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <StatCard icon={Trophy} label="Seus Pontos" value={user ? String(myStats?.points ?? 0) : "—"} accent />
+          <StatCard icon={TrendingUp} label="Ranking Geral" value={user ? (myStats?.rank ?? "—") : "—"} />
         </div>
 
         {/* Round Highlight */}
