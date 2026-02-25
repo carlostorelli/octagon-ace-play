@@ -22,6 +22,10 @@ const AdminNotifications = () => {
   const [announcementMessage, setAnnouncementMessage] = useState("");
   const [announcementActive, setAnnouncementActive] = useState(false);
 
+  // Welcome message state
+  const [welcomeTitle, setWelcomeTitle] = useState("Bem-vindo ao OSS Fantasy! 🎉");
+  const [welcomeMessage, setWelcomeMessage] = useState("Sua conta foi criada com sucesso. Explore os eventos e faça seus palpites!");
+
   // Fetch announcement from site_settings
   const { data: announcementSettings } = useQuery({
     queryKey: ["announcement-settings"],
@@ -29,7 +33,7 @@ const AdminNotifications = () => {
       const { data, error } = await supabase
         .from("site_settings")
         .select("*")
-        .in("key", ["announcement_title", "announcement_message", "announcement_active"]);
+        .in("key", ["announcement_title", "announcement_message", "announcement_active", "welcome_notif_title", "welcome_notif_message"]);
       if (error) throw error;
       return data ?? [];
     },
@@ -40,9 +44,13 @@ const AdminNotifications = () => {
       const t = announcementSettings.find((s: any) => s.key === "announcement_title");
       const m = announcementSettings.find((s: any) => s.key === "announcement_message");
       const a = announcementSettings.find((s: any) => s.key === "announcement_active");
+      const wt = announcementSettings.find((s: any) => s.key === "welcome_notif_title");
+      const wm = announcementSettings.find((s: any) => s.key === "welcome_notif_message");
       if (t) setAnnouncementTitle(t.value);
       if (m) setAnnouncementMessage(m.value);
       if (a) setAnnouncementActive(a.value === "true");
+      if (wt) setWelcomeTitle(wt.value);
+      if (wm) setWelcomeMessage(wm.value);
     }
   }, [announcementSettings]);
 
@@ -64,6 +72,29 @@ const AdminNotifications = () => {
       queryClient.invalidateQueries({ queryKey: ["announcement-settings"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard-announcement"] });
       toast({ title: "Comunicado salvo", description: announcementActive ? "O comunicado está ativo no dashboard." : "O comunicado está inativo." });
+    },
+    onError: () => {
+      toast({ title: "Erro ao salvar", variant: "destructive" });
+    },
+  });
+
+  // Save welcome message
+  const saveWelcome = useMutation({
+    mutationFn: async () => {
+      const upsertRow = async (key: string, value: string) => {
+        const { data: existing } = await supabase.from("site_settings").select("id").eq("key", key).maybeSingle();
+        if (existing) {
+          await supabase.from("site_settings").update({ value }).eq("key", key);
+        } else {
+          await supabase.from("site_settings").insert({ key, value });
+        }
+      };
+      await upsertRow("welcome_notif_title", welcomeTitle);
+      await upsertRow("welcome_notif_message", welcomeMessage);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["announcement-settings"] });
+      toast({ title: "Mensagem de boas-vindas salva" });
     },
     onError: () => {
       toast({ title: "Erro ao salvar", variant: "destructive" });
@@ -202,7 +233,7 @@ const AdminNotifications = () => {
             </CardTitle>
             <CardDescription>Configure quais notificações são enviadas automaticamente.</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             <div className="flex items-center justify-between rounded-lg border border-border/30 p-4">
               <div>
                 <p className="font-medium text-sm">Novos Usuários</p>
@@ -215,6 +246,22 @@ const AdminNotifications = () => {
                 }}
               />
             </div>
+            {(notifyNewUser?.enabled ?? true) && (
+              <div className="space-y-3 rounded-lg border border-border/30 p-4">
+                <div className="space-y-1.5">
+                  <Label>Título da Mensagem</Label>
+                  <Input value={welcomeTitle} onChange={(e) => setWelcomeTitle(e.target.value)} placeholder="Bem-vindo ao OSS Fantasy! 🎉" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Mensagem</Label>
+                  <Textarea value={welcomeMessage} onChange={(e) => setWelcomeMessage(e.target.value)} rows={3} placeholder="Sua conta foi criada com sucesso..." />
+                </div>
+                <Button onClick={() => saveWelcome.mutate()} disabled={saveWelcome.isPending} size="sm" className="gap-1.5">
+                  {saveWelcome.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                  Salvar Mensagem
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
 
