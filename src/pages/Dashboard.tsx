@@ -292,50 +292,66 @@ const Dashboard = () => {
         )}
 
         {/* Leaderboard - Top 10 with Tabs */}
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="glass-card rounded-xl overflow-hidden">
-          <div className="p-6">
-            <h2 className="font-display text-xl font-bold uppercase flex items-center gap-2 mb-4">
-              <Trophy className="h-5 w-5 text-accent" /> Top 10 Ranking
-            </h2>
-            <Tabs defaultValue="geral">
-              <TabsList className="mb-4">
-                <TabsTrigger value="geral">Ranking Geral</TabsTrigger>
-                <TabsTrigger value="evento">Por Evento</TabsTrigger>
-              </TabsList>
-              <TabsContent value="geral">
-                {rankingGeral.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-6">Nenhum dado no ranking geral ainda.</p>
-                ) : (
-                  <div className="space-y-2">
-                    {rankingGeral.map((entry: any) => (
-                      <LeaderboardRow key={entry.rank} {...entry} />
-                    ))}
-                  </div>
-                )}
-              </TabsContent>
-              <TabsContent value="evento">
-                {completedEvents.length === 0 ? (
-                  <p className="text-sm text-muted-foreground text-center py-6">Nenhum evento concluído ainda.</p>
-                ) : (
-                  <>
+        {(() => {
+          const MOCK_RANKING_GERAL = [
+            { rank: 1, user: "Carlos Silva", points: 2450, wins: 8, avatar: "CS", avatarUrl: null, instagram: "@carlos_ufc" },
+            { rank: 2, user: "Ana Pereira", points: 2380, wins: 7, avatar: "AP", avatarUrl: null, instagram: "@ana_mma" },
+            { rank: 3, user: "João Mendes", points: 2210, wins: 7, avatar: "JM", avatarUrl: null, instagram: "@joao_fight" },
+            { rank: 4, user: "Pedro Lima", points: 2100, wins: 6, avatar: "PL", avatarUrl: null, instagram: "@pedro_octagon" },
+            { rank: 5, user: "Maria Rocha", points: 1980, wins: 5, avatar: "MR", avatarUrl: null, instagram: "@maria_ufc" },
+            { rank: 6, user: "Lucas Fernandes", points: 1870, wins: 5, avatar: "LF", avatarUrl: null, instagram: "@lucas_mma" },
+            { rank: 7, user: "Bruna Teixeira", points: 1750, wins: 4, avatar: "BT", avatarUrl: null, instagram: "@bruna_strike" },
+            { rank: 8, user: "Diego Costa", points: 1680, wins: 4, avatar: "DC", avatarUrl: null, instagram: "@diego_grappler" },
+            { rank: 9, user: "Fernanda Gomes", points: 1590, wins: 3, avatar: "FG", avatarUrl: null, instagram: null },
+            { rank: 10, user: "Rafael Nunes", points: 1520, wins: 3, avatar: "RN", avatarUrl: null, instagram: null },
+          ];
+          const MOCK_RANKING_EVENTO = [
+            { rank: 1, user: "Carlos Silva", points: 410, wins: 2, avatar: "CS", avatarUrl: null, instagram: "@carlos_ufc" },
+            { rank: 2, user: "João Mendes", points: 390, wins: 2, avatar: "JM", avatarUrl: null, instagram: "@joao_fight" },
+            { rank: 3, user: "Ana Pereira", points: 360, wins: 1, avatar: "AP", avatarUrl: null, instagram: "@ana_mma" },
+            { rank: 4, user: "Lucas Fernandes", points: 330, wins: 1, avatar: "LF", avatarUrl: null, instagram: "@lucas_mma" },
+            { rank: 5, user: "Maria Rocha", points: 300, wins: 1, avatar: "MR", avatarUrl: null, instagram: "@maria_ufc" },
+            { rank: 6, user: "Pedro Lima", points: 280, wins: 1, avatar: "PL", avatarUrl: null, instagram: "@pedro_octagon" },
+            { rank: 7, user: "Diego Costa", points: 260, wins: 0, avatar: "DC", avatarUrl: null, instagram: "@diego_grappler" },
+            { rank: 8, user: "Bruna Teixeira", points: 240, wins: 0, avatar: "BT", avatarUrl: null, instagram: "@bruna_strike" },
+          ];
+          const displayGeral = rankingGeral.length > 0 ? rankingGeral : MOCK_RANKING_GERAL;
+          const displayEvento = rankingEvento.length > 0 ? rankingEvento : MOCK_RANKING_EVENTO;
+          const hasRealEvents = completedEvents.length > 0;
+
+          return (
+            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="glass-card rounded-xl overflow-hidden">
+              <div className="p-6">
+                <h2 className="font-display text-xl font-bold uppercase flex items-center gap-2 mb-4">
+                  <Trophy className="h-5 w-5 text-accent" /> Top 10 Ranking
+                </h2>
+                <Tabs defaultValue="geral">
+                  <TabsList className="mb-4">
+                    <TabsTrigger value="geral">Ranking Geral</TabsTrigger>
+                    <TabsTrigger value="evento">Por Evento</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="geral">
+                    <div className="space-y-2">
+                      {displayGeral.map((entry: any) => (
+                        <LeaderboardRow key={entry.rank} {...entry} />
+                      ))}
+                    </div>
+                  </TabsContent>
+                  <TabsContent value="evento">
                     <p className="text-xs text-muted-foreground mb-3">
-                      Último evento: <span className="font-semibold text-foreground">{completedEvents[0]?.name}</span>
+                      Último evento: <span className="font-semibold text-foreground">{hasRealEvents ? completedEvents[0]?.name : "UFC Fight Night: Moreno vs Kavanagh"}</span>
                     </p>
-                    {rankingEvento.length === 0 ? (
-                      <p className="text-sm text-muted-foreground text-center py-6">Nenhum dado de ranking para este evento.</p>
-                    ) : (
-                      <div className="space-y-2">
-                        {rankingEvento.map((entry: any) => (
-                          <LeaderboardRow key={entry.rank} {...entry} />
-                        ))}
-                      </div>
-                    )}
-                  </>
-                )}
-              </TabsContent>
-            </Tabs>
-          </div>
-        </motion.div>
+                    <div className="space-y-2">
+                      {displayEvento.map((entry: any) => (
+                        <LeaderboardRow key={entry.rank} {...entry} />
+                      ))}
+                    </div>
+                  </TabsContent>
+                </Tabs>
+              </div>
+            </motion.div>
+          );
+        })()}
       </div>
     </AppLayout>
   );

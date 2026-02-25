@@ -27,11 +27,16 @@ const LeaderboardPage = () => {
 
   // Fallback to mock if no real data
   const displayData = leaderboard.length > 0 ? leaderboard : [
-    { rank: 1, user: "Carlos S.", points: 2450, wins: 8, avatar: "CS", avatarUrl: null, instagram: "@carlos_ufc" },
-    { rank: 2, user: "Ana P.", points: 2380, wins: 7, avatar: "AP", avatarUrl: null, instagram: "@ana_mma" },
-    { rank: 3, user: "João M.", points: 2210, wins: 7, avatar: "JM", avatarUrl: null, instagram: null },
-    { rank: 4, user: "Pedro L.", points: 2100, wins: 6, avatar: "PL", avatarUrl: null, instagram: "@pedro_fight" },
-    { rank: 5, user: "Maria R.", points: 1980, wins: 5, avatar: "MR", avatarUrl: null, instagram: null },
+    { rank: 1, user: "Carlos Silva", points: 2450, wins: 8, avatar: "CS", avatarUrl: null, instagram: "@carlos_ufc" },
+    { rank: 2, user: "Ana Pereira", points: 2380, wins: 7, avatar: "AP", avatarUrl: null, instagram: "@ana_mma" },
+    { rank: 3, user: "João Mendes", points: 2210, wins: 7, avatar: "JM", avatarUrl: null, instagram: "@joao_fight" },
+    { rank: 4, user: "Pedro Lima", points: 2100, wins: 6, avatar: "PL", avatarUrl: null, instagram: "@pedro_octagon" },
+    { rank: 5, user: "Maria Rocha", points: 1980, wins: 5, avatar: "MR", avatarUrl: null, instagram: "@maria_ufc" },
+    { rank: 6, user: "Lucas Fernandes", points: 1870, wins: 5, avatar: "LF", avatarUrl: null, instagram: "@lucas_mma" },
+    { rank: 7, user: "Bruna Teixeira", points: 1750, wins: 4, avatar: "BT", avatarUrl: null, instagram: "@bruna_strike" },
+    { rank: 8, user: "Diego Costa", points: 1680, wins: 4, avatar: "DC", avatarUrl: null, instagram: "@diego_grappler" },
+    { rank: 9, user: "Fernanda Gomes", points: 1590, wins: 3, avatar: "FG", avatarUrl: null, instagram: null },
+    { rank: 10, user: "Rafael Nunes", points: 1520, wins: 3, avatar: "RN", avatarUrl: null, instagram: null },
   ];
 
   return (
