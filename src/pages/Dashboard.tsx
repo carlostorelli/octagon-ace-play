@@ -1,5 +1,6 @@
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Calendar, Users, Trophy, Swords, TrendingUp, Loader2, LogOut, ArrowRight, Clock, MapPin } from "lucide-react";
+import { Calendar, Users, Trophy, Swords, TrendingUp, Loader2, LogOut, ArrowRight, Clock, MapPin, Lock } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, Link } from "react-router-dom";
 import AppLayout from "@/components/AppLayout";
@@ -147,6 +148,19 @@ const Dashboard = () => {
     },
   });
 
+  // Predictions time check
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const interval = setInterval(() => setNow(new Date()), 30_000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const predictionsOpen = nextEvent?.predictions_open_at ? new Date(nextEvent.predictions_open_at) : null;
+  const predictionsClose = nextEvent?.predictions_close_at ? new Date(nextEvent.predictions_close_at) : null;
+  const isBeforeOpen = predictionsOpen && now < predictionsOpen;
+  const isAfterClose = predictionsClose && now > predictionsClose;
+  const isPredictionsOpen = !isBeforeOpen && !isAfterClose;
+
   return (
     <AppLayout>
       <div className="container py-8 space-y-8">
@@ -186,10 +200,22 @@ const Dashboard = () => {
                   <div>
                     <div className="flex items-center gap-2 mb-2">
                       <span className="font-mono text-xs uppercase tracking-widest text-primary">&gt; Rodada Ativa</span>
-                      <div className="flex items-center gap-1.5 rounded-full bg-accent/10 text-accent px-3 py-1 text-xs font-semibold">
-                        <div className="h-1.5 w-1.5 rounded-full bg-accent animate-pulse" />
-                        Palpites Abertos
-                      </div>
+                      {isPredictionsOpen ? (
+                        <div className="flex items-center gap-1.5 rounded-full bg-accent/10 text-accent px-3 py-1 text-xs font-semibold">
+                          <div className="h-1.5 w-1.5 rounded-full bg-accent animate-pulse" />
+                          Palpites Abertos
+                        </div>
+                      ) : isBeforeOpen ? (
+                        <div className="flex items-center gap-1.5 rounded-full bg-muted text-muted-foreground px-3 py-1 text-xs font-semibold">
+                          <Clock className="h-3 w-3" />
+                          Abre em {predictionsOpen!.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-1.5 rounded-full bg-destructive/10 text-destructive px-3 py-1 text-xs font-semibold">
+                          <Lock className="h-3 w-3" />
+                          Palpites Encerrados
+                        </div>
+                      )}
                     </div>
                     <h2 className="font-display text-3xl font-bold uppercase tracking-tight">{nextEvent.name}</h2>
                     <div className="flex flex-wrap items-center gap-4 mt-2 text-sm text-muted-foreground">
