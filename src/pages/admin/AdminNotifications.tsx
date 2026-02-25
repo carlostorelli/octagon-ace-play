@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Bell, Send, Trash2, Loader2, Users, UserPlus } from "lucide-react";
+import { Bell, Send, Trash2, Loader2, Users, UserPlus, Megaphone, Save } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import AdminLayout from "@/components/AdminLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,6 +16,59 @@ const AdminNotifications = () => {
   const queryClient = useQueryClient();
   const [title, setTitle] = useState("");
   const [message, setMessage] = useState("");
+
+  // Announcement state
+  const [announcementTitle, setAnnouncementTitle] = useState("");
+  const [announcementMessage, setAnnouncementMessage] = useState("");
+  const [announcementActive, setAnnouncementActive] = useState(false);
+
+  // Fetch announcement from site_settings
+  const { data: announcementSettings } = useQuery({
+    queryKey: ["announcement-settings"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("site_settings")
+        .select("*")
+        .in("key", ["announcement_title", "announcement_message", "announcement_active"]);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  useEffect(() => {
+    if (announcementSettings) {
+      const t = announcementSettings.find((s: any) => s.key === "announcement_title");
+      const m = announcementSettings.find((s: any) => s.key === "announcement_message");
+      const a = announcementSettings.find((s: any) => s.key === "announcement_active");
+      if (t) setAnnouncementTitle(t.value);
+      if (m) setAnnouncementMessage(m.value);
+      if (a) setAnnouncementActive(a.value === "true");
+    }
+  }, [announcementSettings]);
+
+  const saveAnnouncement = useMutation({
+    mutationFn: async () => {
+      const upsertRow = async (key: string, value: string) => {
+        const { data: existing } = await supabase.from("site_settings").select("id").eq("key", key).maybeSingle();
+        if (existing) {
+          await supabase.from("site_settings").update({ value }).eq("key", key);
+        } else {
+          await supabase.from("site_settings").insert({ key, value });
+        }
+      };
+      await upsertRow("announcement_title", announcementTitle);
+      await upsertRow("announcement_message", announcementMessage);
+      await upsertRow("announcement_active", String(announcementActive));
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["announcement-settings"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-announcement"] });
+      toast({ title: "Comunicado salvo", description: announcementActive ? "O comunicado está ativo no dashboard." : "O comunicado está inativo." });
+    },
+    onError: () => {
+      toast({ title: "Erro ao salvar", variant: "destructive" });
+    },
+  });
 
   // Fetch all profiles for broadcast
   const { data: profiles = [] } = useQuery({
@@ -104,6 +157,41 @@ const AdminNotifications = () => {
     <AdminLayout>
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="space-y-6">
         <h1 className="font-display text-2xl font-bold uppercase tracking-tight">Notificações</h1>
+
+        {/* Comunicado no Dashboard */}
+        <Card className="glass-card border-border/30">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent/10">
+                  <Megaphone className="h-5 w-5 text-accent" />
+                </div>
+                <div>
+                  <CardTitle className="text-lg">Comunicado no Dashboard</CardTitle>
+                  <CardDescription>Mensagem que aparecerá para todos os usuários no painel</CardDescription>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-muted-foreground">{announcementActive ? "Ativo" : "Inativo"}</span>
+                <Switch checked={announcementActive} onCheckedChange={setAnnouncementActive} />
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-1.5">
+              <Label>Título do Comunicado</Label>
+              <Input placeholder="Ex: Novidades da temporada!" value={announcementTitle} onChange={(e) => setAnnouncementTitle(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Mensagem</Label>
+              <Textarea placeholder="Escreva o comunicado que aparecerá no dashboard..." value={announcementMessage} onChange={(e) => setAnnouncementMessage(e.target.value)} rows={4} />
+            </div>
+            <Button onClick={() => saveAnnouncement.mutate()} disabled={saveAnnouncement.isPending} className="w-full gap-1.5">
+              {saveAnnouncement.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              Salvar Configurações
+            </Button>
+          </CardContent>
+        </Card>
 
         {/* Settings */}
         <Card className="glass-card border-border/30">
