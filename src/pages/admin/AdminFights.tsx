@@ -11,23 +11,35 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
 function parseBulkFights(text: string): { fighterA: string; oddsA: number | null; fighterB: string; oddsB: number | null; cardType: string }[] {
-  const lines = text.trim().split("\n").filter((l) => l.trim());
+  const lines = text.trim().split("\n");
   const results: { fighterA: string; oddsA: number | null; fighterB: string; oddsB: number | null; cardType: string }[] = [];
   let currentCard = "main";
-  let foundBlank = false;
+  let hasSeenFight = false;
 
   for (const line of lines) {
     const trimmed = line.trim();
-    if (!trimmed) { foundBlank = true; continue; }
+    if (!trimmed) {
+      // Blank line: switch to prelim if we already have fights
+      if (hasSeenFight) currentCard = "prelim";
+      continue;
+    }
+
+    // Detect explicit headers
+    if (/^(card\s*)?principal/i.test(trimmed) || /^main\s*card/i.test(trimmed)) {
+      currentCard = "main";
+      continue;
+    }
+    if (/^(card\s*)?prelim/i.test(trimmed) || /^prelim/i.test(trimmed)) {
+      currentCard = "prelim";
+      continue;
+    }
 
     // Pattern: Name (odds) vs Name (odds)
     const match = trimmed.match(
       /^(.+?)\s*\(([+-]?\d+)\)\s*vs\.?\s*(.+?)\s*\(([+-]?\d+)\)$/i
     );
     if (match) {
-      // If there was a blank line before and we already have fights, switch to prelim
-      if (foundBlank && results.length > 0) currentCard = "prelim";
-      foundBlank = false;
+      hasSeenFight = true;
       results.push({
         fighterA: match[1].trim(),
         oddsA: parseInt(match[2]),
