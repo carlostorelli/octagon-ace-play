@@ -16,12 +16,31 @@ const FIGHT_TYPES = [
   { value: "title", label: "Disputa de Cinturão" },
 ];
 
+async function findOrCreateFighter(name: string): Promise<string> {
+  const trimmed = name.trim();
+  // Try to find existing fighter by name (case-insensitive)
+  const { data: existing } = await supabase
+    .from("fighters")
+    .select("id")
+    .ilike("name", trimmed)
+    .maybeSingle();
+  if (existing) return existing.id;
+  // Create new fighter
+  const { data: created, error } = await supabase
+    .from("fighters")
+    .insert({ name: trimmed })
+    .select("id")
+    .single();
+  if (error) throw error;
+  return created.id;
+}
+
 const AdminFights = () => {
   const { eventId } = useParams<{ eventId: string }>();
   const queryClient = useQueryClient();
 
-  const [fighterAId, setFighterAId] = useState("");
-  const [fighterBId, setFighterBId] = useState("");
+  const [fighterAName, setFighterAName] = useState("");
+  const [fighterBName, setFighterBName] = useState("");
   const [fightType, setFightType] = useState("3_rounds");
   const [cardType, setCardType] = useState("main");
   const [fightOrder, setFightOrder] = useState(1);
@@ -52,27 +71,18 @@ const AdminFights = () => {
     },
   });
 
-  const { data: allFighters = [] } = useQuery({
-    queryKey: ["admin-all-fighters"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("fighters").select("*").order("name");
-      if (error) throw error;
-      return data;
-    },
-  });
-
-  // Fighters already assigned in this event
-  const assignedIds = fights.flatMap((f: any) => [f.fighter_a_id, f.fighter_b_id]);
-  const availableFighters = allFighters.filter((f: any) => !assignedIds.includes(f.id));
-
   const addMutation = useMutation({
     mutationFn: async () => {
-      if (!fighterAId || !fighterBId) throw new Error("Selecione os dois lutadores");
-      if (fighterAId === fighterBId) throw new Error("Lutadores devem ser diferentes");
+      if (!fighterAName.trim() || !fighterBName.trim()) throw new Error("Digite o nome dos dois lutadores");
+      const [idA, idB] = await Promise.all([
+        findOrCreateFighter(fighterAName),
+        findOrCreateFighter(fighterBName),
+      ]);
+      if (idA === idB) throw new Error("Lutadores devem ser diferentes");
       const { error } = await supabase.from("fights").insert({
         event_id: eventId!,
-        fighter_a_id: fighterAId,
-        fighter_b_id: fighterBId,
+        fighter_a_id: idA,
+        fighter_b_id: idB,
         fight_type: fightType,
         card_type: cardType,
         fight_order: fightOrder,
@@ -83,8 +93,8 @@ const AdminFights = () => {
     },
     onSuccess: () => {
       toast({ title: "Luta adicionada!" });
-      setFighterAId("");
-      setFighterBId("");
+      setFighterAName("");
+      setFighterBName("");
       setOddsA("");
       setOddsB("");
       setFightOrder((prev) => prev + 1);
@@ -154,32 +164,8 @@ const AdminFights = () => {
         <div className="glass-card rounded-xl p-6 space-y-4">
           <h2 className="font-display text-sm font-bold uppercase tracking-wider text-primary">Adicionar Luta</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground font-display">Lutador A</label>
-              <select
-                className="h-10 rounded-lg border border-[hsl(var(--input-border))] bg-input-surface px-3 text-sm text-foreground outline-none"
-                value={fighterAId}
-                onChange={(e) => setFighterAId(e.target.value)}
-              >
-                <option value="">Selecione...</option>
-                {availableFighters.filter((f: any) => f.id !== fighterBId).map((f: any) => (
-                  <option key={f.id} value={f.id}>{f.country} {f.name} ({f.weight_class})</option>
-                ))}
-              </select>
-            </div>
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground font-display">Lutador B</label>
-              <select
-                className="h-10 rounded-lg border border-[hsl(var(--input-border))] bg-input-surface px-3 text-sm text-foreground outline-none"
-                value={fighterBId}
-                onChange={(e) => setFighterBId(e.target.value)}
-              >
-                <option value="">Selecione...</option>
-                {availableFighters.filter((f: any) => f.id !== fighterAId).map((f: any) => (
-                  <option key={f.id} value={f.id}>{f.country} {f.name} ({f.weight_class})</option>
-                ))}
-              </select>
-            </div>
+            <OSSInput label="Lutador A" placeholder="Ex: Max Holloway" value={fighterAName} onChange={(e) => setFighterAName(e.target.value)} />
+            <OSSInput label="Lutador B" placeholder="Ex: Islam Makhachev" value={fighterBName} onChange={(e) => setFighterBName(e.target.value)} />
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground font-display">Tipo de Luta</label>
               <select
@@ -205,7 +191,7 @@ const AdminFights = () => {
             <OSSInput label="Odds A" type="number" placeholder="-150" value={oddsA} onChange={(e) => setOddsA(e.target.value)} />
             <OSSInput label="Odds B" type="number" placeholder="+200" value={oddsB} onChange={(e) => setOddsB(e.target.value)} />
           </div>
-          <Button onClick={() => addMutation.mutate()} disabled={addMutation.isPending || !fighterAId || !fighterBId}>
+          <Button onClick={() => addMutation.mutate()} disabled={addMutation.isPending || !fighterAName.trim() || !fighterBName.trim()}>
             {addMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
             Adicionar Luta
           </Button>
@@ -244,24 +230,18 @@ const AdminFights = () => {
                                       <GripVertical className="h-5 w-5" />
                                     </span>
                                     <span className="font-mono text-xs text-muted-foreground w-6 text-center">{fight.fight_order}</span>
-                                    <div className="flex items-center gap-2">
-                                      <div className="text-right">
-                                        <span className="text-lg mr-1">{fight.fighter_a?.country}</span>
-                                        <span className="font-display font-bold uppercase">{fight.fighter_a?.name}</span>
-                                        {fight.odds_fighter_a != null && (
-                                          <span className="text-xs text-muted-foreground ml-1">({fight.odds_fighter_a > 0 ? "+" : ""}{fight.odds_fighter_a})</span>
-                                        )}
-                                      </div>
-                                      <span className="text-xs font-bold text-primary px-2">VS</span>
-                                      <div>
-                                        <span className="font-display font-bold uppercase">{fight.fighter_b?.name}</span>
-                                        <span className="text-lg ml-1">{fight.fighter_b?.country}</span>
-                                        {fight.odds_fighter_b != null && (
-                                          <span className="text-xs text-muted-foreground ml-1">({fight.odds_fighter_b > 0 ? "+" : ""}{fight.odds_fighter_b})</span>
-                                        )}
-                                      </div>
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                      <span className="font-display font-bold uppercase">{fight.fighter_a?.name}</span>
+                                      {fight.odds_fighter_a != null && (
+                                        <span className="text-xs text-muted-foreground">({fight.odds_fighter_a > 0 ? "+" : ""}{fight.odds_fighter_a})</span>
+                                      )}
+                                      <span className="text-xs font-bold text-primary">VS</span>
+                                      <span className="font-display font-bold uppercase">{fight.fighter_b?.name}</span>
+                                      {fight.odds_fighter_b != null && (
+                                        <span className="text-xs text-muted-foreground">({fight.odds_fighter_b > 0 ? "+" : ""}{fight.odds_fighter_b})</span>
+                                      )}
+                                      <span className="text-xs text-muted-foreground">· {fightTypeLabel(fight.fight_type)}</span>
                                     </div>
-                                    <span className="text-xs text-muted-foreground ml-2">{fightTypeLabel(fight.fight_type)}</span>
                                   </div>
                                   <Button size="sm" variant="ghost" className="text-destructive" onClick={() => removeMutation.mutate(fight.id)}>
                                     <Trash2 className="h-4 w-4" />
