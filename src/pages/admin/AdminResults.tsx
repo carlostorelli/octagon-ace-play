@@ -225,7 +225,7 @@ const AdminResults = () => {
             className={`gap-1.5 text-xs ${r.is_fotn ? "bg-accent hover:bg-accent/90" : ""}`}
           >
             <Award className="h-3.5 w-3.5" />
-            FOTN
+            Luta da Noite
           </Button>
           <Button
             size="sm"
@@ -234,7 +234,7 @@ const AdminResults = () => {
             className={`gap-1.5 text-xs ${r.is_fatn ? "bg-accent hover:bg-accent/90" : ""}`}
           >
             <Star className="h-3.5 w-3.5" />
-            POTN
+            Performance da Noite
           </Button>
         </div>
       </div>
