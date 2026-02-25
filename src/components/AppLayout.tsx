@@ -1,8 +1,9 @@
 import { Link, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Swords, Trophy, Calendar, BarChart3, Menu, X, Shield, User, Bell } from "lucide-react";
+import { Swords, Trophy, Calendar, BarChart3, Menu, X, Shield, User } from "lucide-react";
 import { useState } from "react";
 import { useAdmin } from "@/hooks/useAdmin";
+import NotificationBell from "@/components/NotificationBell";
 
 const navItems = [
   { path: "/dashboard", label: "Dashboard", icon: BarChart3 },
@@ -60,10 +61,7 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
                 Admin
               </Link>
             )}
-            {/* Notification bell */}
-            <button className="relative ml-2 p-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-secondary transition-colors">
-              <Bell className="h-5 w-5" />
-            </button>
+            <NotificationBell />
           </nav>
 
           {/* Mobile toggle */}
