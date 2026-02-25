@@ -1,6 +1,6 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Swords, Check, Loader2, FileText, Download, ChevronDown, ChevronUp, Trophy, Lock, Clock } from "lucide-react";
+import { Swords, Check, Loader2, FileText, Download, Trophy, Lock, Clock, Pencil } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import AppLayout from "@/components/AppLayout";
@@ -12,6 +12,7 @@ import FightCard from "@/components/predictions/FightCard";
 const PredictionsPage = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const [isEditing, setIsEditing] = useState(false);
 
   // Get next upcoming event
   const { data: nextEvent } = useQuery({
@@ -108,18 +109,24 @@ const PredictionsPage = () => {
 
   const totalPredictions = Object.keys(predictions).length;
   const totalFights = fights.length;
+  const hasSavedPredictions = existingPredictions.length > 0;
 
   const mainFights = fights.filter((f: any) => f.card_type === "main");
   const prelimFights = fights.filter((f: any) => f.card_type === "prelim");
+
+  // Show fight cards if: no saved predictions yet (and window open), or user clicked edit
+  const showFightCards = !hasSavedPredictions || isEditing;
 
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (!user || !nextEvent) throw new Error("Dados incompletos");
 
+      // Double-check lock on server side
+      if (isLocked) throw new Error("Palpites estão encerrados");
+
       const entries = Object.entries(predictions);
       if (entries.length === 0) throw new Error("Nenhum palpite selecionado");
 
-      // Upsert predictions (delete existing + insert new)
       const { error: delError } = await supabase
         .from("predictions")
         .delete()
@@ -142,11 +149,18 @@ const PredictionsPage = () => {
     onSuccess: () => {
       toast({ title: "Palpites salvos! 🥊", description: `${totalPredictions} palpites para ${nextEvent?.name}` });
       queryClient.invalidateQueries({ queryKey: ["my-predictions"] });
+      setIsEditing(false);
     },
     onError: (err: any) => {
       toast({ title: "Erro", description: err.message, variant: "destructive" });
     },
   });
+
+  const getMethodLabel = (method: string | null) => {
+    if (method === "Submission") return "Finalização";
+    if (method === "Decision") return "Decisão";
+    return method;
+  };
 
   return (
     <AppLayout>
@@ -154,7 +168,9 @@ const PredictionsPage = () => {
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
           <div>
             <h1 className="font-display text-3xl font-bold uppercase tracking-tight mb-1">Palpites</h1>
-            <p className="text-muted-foreground">Faça seus palpites para {nextEvent?.name ?? "o próximo evento"}</p>
+            <p className="text-muted-foreground">
+              {nextEvent?.name ?? "Nenhum evento disponível"}
+            </p>
           </div>
         </motion.div>
 
@@ -170,31 +186,6 @@ const PredictionsPage = () => {
             </div>
           </div>
         )}
-
-        {/* Progress */}
-        <div className="glass-card rounded-xl p-5">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2 text-sm">
-              <Trophy className="h-4 w-4 text-accent" />
-              <span className="font-medium">Progresso</span>
-            </div>
-            <div className="text-sm">
-              <span className="font-display font-bold text-accent">{totalPredictions}</span>
-              <span className="text-muted-foreground"> / {totalFights} lutas</span>
-            </div>
-          </div>
-          <div className="h-2 rounded-full bg-secondary overflow-hidden">
-            <motion.div
-              className="h-full rounded-full bg-accent"
-              initial={{ width: 0 }}
-              animate={{ width: `${totalFights > 0 ? (totalPredictions / totalFights) * 100 : 0}%` }}
-              transition={{ type: "spring", stiffness: 100 }}
-            />
-          </div>
-          <p className="mt-3 text-xs text-muted-foreground">
-            Escolha o vencedor e o método de vitória para cada luta. Quanto mais detalhes acertar, mais pontos!
-          </p>
-        </div>
 
         {/* OSS Preview */}
         {nextEvent && (nextEvent.preview_notes || nextEvent.preview_pdf_url) && (
@@ -222,68 +213,24 @@ const PredictionsPage = () => {
           </div>
         )}
 
-        {/* Fights */}
-        {isLoading ? (
-          <div className="flex items-center justify-center py-20">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          </div>
-        ) : (
-          <div className="space-y-4">
-            {mainFights.length > 0 && (
-              <>
-                <div className="flex items-center gap-2 pt-2">
-                  <Swords className="h-4 w-4 text-primary" />
-                  <span className="font-display text-sm font-bold uppercase tracking-wider text-primary">Card Principal</span>
-                  <div className="flex-1 h-px bg-primary/20" />
-                </div>
-                {mainFights.map((fight: any, i: number) => (
-                  <FightCard
-                    key={fight.id}
-                    fight={fight}
-                    prediction={predictions[fight.id] ?? null}
-                    onPredict={(pred) => setPrediction(fight.id, pred)}
-                    index={i}
-                    disabled={!!isLocked}
-                  />
-                ))}
-              </>
-            )}
-            {prelimFights.length > 0 && (
-              <>
-                <div className="flex items-center gap-2 pt-4">
-                  <Swords className="h-4 w-4 text-muted-foreground" />
-                  <span className="font-display text-sm font-bold uppercase tracking-wider text-muted-foreground">Card Preliminar</span>
-                  <div className="flex-1 h-px bg-border" />
-                </div>
-                {prelimFights.map((fight: any, i: number) => (
-                  <FightCard
-                    key={fight.id}
-                    fight={fight}
-                    prediction={predictions[fight.id] ?? null}
-                    onPredict={(pred) => setPrediction(fight.id, pred)}
-                    index={mainFights.length + i}
-                    disabled={!!isLocked}
-                  />
-                ))}
-              </>
-            )}
-
-            {fights.length === 0 && (
-              <div className="glass-card rounded-xl p-10 text-center">
-                <Swords className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
-                <p className="text-muted-foreground">Nenhuma luta cadastrada para este evento ainda.</p>
+        {/* Meus Palpites - resumo (quando já tem palpites salvos e NÃO está editando) */}
+        {user && hasSavedPredictions && !isEditing && fights.length > 0 && (
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Check className="h-4 w-4 text-accent" />
+                <span className="font-display text-sm font-bold uppercase tracking-wider text-accent">Meus Palpites</span>
               </div>
-            )}
-          </div>
-        )}
-
-        {/* Meus Palpites - resumo salvo */}
-        {user && existingPredictions.length > 0 && fights.length > 0 && (
-          <div className="space-y-3 pt-4">
-            <div className="flex items-center gap-2">
-              <Check className="h-4 w-4 text-accent" />
-              <span className="font-display text-sm font-bold uppercase tracking-wider text-accent">Meus Palpites</span>
-              <div className="flex-1 h-px bg-accent/20" />
+              {!isLocked && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                  onClick={() => setIsEditing(true)}
+                >
+                  <Pencil className="h-3.5 w-3.5" /> Editar
+                </Button>
+              )}
             </div>
             <div className="glass-card rounded-xl divide-y divide-border overflow-hidden">
               {fights.map((fight: any) => {
@@ -292,32 +239,136 @@ const PredictionsPage = () => {
                 const winnerName = pred.winner_fighter_id === fight.fighter_a?.id
                   ? fight.fighter_a?.name
                   : fight.fighter_b?.name;
-                const methodLabel = pred.method === "Submission" ? "Finalização" : pred.method === "Decision" ? "Decisão" : pred.method;
+                const loserName = pred.winner_fighter_id === fight.fighter_a?.id
+                  ? fight.fighter_b?.name
+                  : fight.fighter_a?.name;
                 return (
                   <div key={fight.id} className="flex items-center justify-between px-4 py-3 text-sm">
-                    <span className="font-display font-bold uppercase text-foreground">{winnerName}</span>
-                    <span className="text-muted-foreground">
-                      {methodLabel}{pred.round ? ` — R${pred.round}` : ""}
+                    <div className="flex flex-col">
+                      <span className="font-display font-bold uppercase text-foreground">{winnerName}</span>
+                      <span className="text-xs text-muted-foreground">vs {loserName}</span>
+                    </div>
+                    <span className="text-muted-foreground text-right">
+                      {getMethodLabel(pred.method)}{pred.round ? ` — R${pred.round}` : ""}
                     </span>
                   </div>
                 );
               })}
             </div>
+            {isLocked && (
+              <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                <Lock className="h-3 w-3" /> Seus palpites estão trancados e não podem mais ser alterados.
+              </p>
+            )}
           </div>
         )}
 
-        {/* Save button */}
-        {totalPredictions > 0 && user && !isLocked && (
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
-            <Button
-              size="lg"
-              className="bg-primary hover:bg-primary/90 text-primary-foreground font-display uppercase tracking-wider text-base px-10 glow shadow-2xl"
-              onClick={() => saveMutation.mutate()}
-              disabled={saveMutation.isPending}
-            >
-              {saveMutation.isPending ? "Salvando..." : `Salvar ${totalPredictions} Palpite${totalPredictions > 1 ? "s" : ""}`}
-            </Button>
-          </motion.div>
+        {/* Fight cards (para dar/editar palpites) */}
+        {showFightCards && (
+          <>
+            {/* Progress */}
+            <div className="glass-card rounded-xl p-5">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2 text-sm">
+                  <Trophy className="h-4 w-4 text-accent" />
+                  <span className="font-medium">Progresso</span>
+                </div>
+                <div className="text-sm">
+                  <span className="font-display font-bold text-accent">{totalPredictions}</span>
+                  <span className="text-muted-foreground"> / {totalFights} lutas</span>
+                </div>
+              </div>
+              <div className="h-2 rounded-full bg-secondary overflow-hidden">
+                <motion.div
+                  className="h-full rounded-full bg-accent"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${totalFights > 0 ? (totalPredictions / totalFights) * 100 : 0}%` }}
+                  transition={{ type: "spring", stiffness: 100 }}
+                />
+              </div>
+              <p className="mt-3 text-xs text-muted-foreground">
+                Escolha o vencedor e o método de vitória para cada luta. Quanto mais detalhes acertar, mais pontos!
+              </p>
+            </div>
+
+            {isLoading ? (
+              <div className="flex items-center justify-center py-20">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {mainFights.length > 0 && (
+                  <>
+                    <div className="flex items-center gap-2 pt-2">
+                      <Swords className="h-4 w-4 text-primary" />
+                      <span className="font-display text-sm font-bold uppercase tracking-wider text-primary">Card Principal</span>
+                      <div className="flex-1 h-px bg-primary/20" />
+                    </div>
+                    {mainFights.map((fight: any, i: number) => (
+                      <FightCard
+                        key={fight.id}
+                        fight={fight}
+                        prediction={predictions[fight.id] ?? null}
+                        onPredict={(pred) => setPrediction(fight.id, pred)}
+                        index={i}
+                        disabled={!!isLocked}
+                      />
+                    ))}
+                  </>
+                )}
+                {prelimFights.length > 0 && (
+                  <>
+                    <div className="flex items-center gap-2 pt-4">
+                      <Swords className="h-4 w-4 text-muted-foreground" />
+                      <span className="font-display text-sm font-bold uppercase tracking-wider text-muted-foreground">Card Preliminar</span>
+                      <div className="flex-1 h-px bg-border" />
+                    </div>
+                    {prelimFights.map((fight: any, i: number) => (
+                      <FightCard
+                        key={fight.id}
+                        fight={fight}
+                        prediction={predictions[fight.id] ?? null}
+                        onPredict={(pred) => setPrediction(fight.id, pred)}
+                        index={mainFights.length + i}
+                        disabled={!!isLocked}
+                      />
+                    ))}
+                  </>
+                )}
+
+                {fights.length === 0 && (
+                  <div className="glass-card rounded-xl p-10 text-center">
+                    <Swords className="h-10 w-10 mx-auto text-muted-foreground mb-3" />
+                    <p className="text-muted-foreground">Nenhuma luta cadastrada para este evento ainda.</p>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Save / Cancel buttons */}
+            {totalPredictions > 0 && user && !isLocked && (
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex gap-3">
+                {isEditing && (
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    className="font-display uppercase tracking-wider"
+                    onClick={() => setIsEditing(false)}
+                  >
+                    Cancelar
+                  </Button>
+                )}
+                <Button
+                  size="lg"
+                  className="bg-primary hover:bg-primary/90 text-primary-foreground font-display uppercase tracking-wider text-base px-10 glow shadow-2xl"
+                  onClick={() => saveMutation.mutate()}
+                  disabled={saveMutation.isPending}
+                >
+                  {saveMutation.isPending ? "Salvando..." : `Salvar ${totalPredictions} Palpite${totalPredictions > 1 ? "s" : ""}`}
+                </Button>
+              </motion.div>
+            )}
+          </>
         )}
       </div>
     </AppLayout>
