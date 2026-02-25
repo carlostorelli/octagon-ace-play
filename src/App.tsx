@@ -14,7 +14,7 @@ import InputShowcase from "./pages/InputShowcase";
 import NotFound from "./pages/NotFound";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminEvents from "./pages/admin/AdminEvents";
-import AdminFighters from "./pages/admin/AdminFighters";
+
 import AdminEventCard from "./pages/admin/AdminEventCard";
 import AdminScoring from "./pages/admin/AdminScoring";
 import AdminUsers from "./pages/admin/AdminUsers";
@@ -41,7 +41,7 @@ const App = () => (
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/admin/users" element={<AdminUsers />} />
             <Route path="/admin/events" element={<AdminEvents />} />
-            <Route path="/admin/fighters" element={<AdminFighters />} />
+            
             <Route path="/admin/events/:eventId/card" element={<AdminEventCard />} />
             <Route path="/admin/events/:eventId/fights" element={<AdminFights />} />
             <Route path="/admin/scoring" element={<AdminScoring />} />
