@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Calendar, Users, Trophy, Swords, TrendingUp, Loader2, LogOut, ArrowRight, Clock, MapPin, Lock, Instagram } from "lucide-react";
+import { Calendar, Users, Trophy, Swords, TrendingUp, Loader2, LogOut, ArrowRight, Clock, MapPin, Lock, Instagram, Megaphone, X } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, Link } from "react-router-dom";
 import AppLayout from "@/components/AppLayout";
@@ -176,6 +176,23 @@ const Dashboard = () => {
     },
   });
 
+  // Dashboard announcement
+  const { data: announcement } = useQuery({
+    queryKey: ["dashboard-announcement"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("site_settings")
+        .select("*")
+        .in("key", ["announcement_title", "announcement_message", "announcement_active"]);
+      if (error) throw error;
+      const title = data?.find((s: any) => s.key === "announcement_title")?.value || "";
+      const message = data?.find((s: any) => s.key === "announcement_message")?.value || "";
+      const active = data?.find((s: any) => s.key === "announcement_active")?.value === "true";
+      return active && title ? { title, message } : null;
+    },
+  });
+  const [announcementDismissed, setAnnouncementDismissed] = useState(false);
+
   // Predictions time check
   const [now, setNow] = useState(() => new Date());
   useEffect(() => {
@@ -215,6 +232,20 @@ const Dashboard = () => {
           <StatCard icon={Trophy} label="Seus Pontos" value={user ? String(myStats?.points ?? 0) : "—"} accent />
           <StatCard icon={TrendingUp} label="Ranking Geral" value={user ? (myStats?.rank ?? "—") : "—"} />
         </div>
+
+        {/* Announcement Banner */}
+        {announcement && !announcementDismissed && (
+          <motion.div initial={{ opacity: 0, y: -5 }} animate={{ opacity: 1, y: 0 }} className="rounded-xl border border-accent/20 bg-accent/5 p-4 flex items-start gap-3">
+            <Megaphone className="h-5 w-5 text-accent shrink-0 mt-0.5" />
+            <div className="flex-1 min-w-0">
+              <p className="font-display font-bold text-sm uppercase">{announcement.title}</p>
+              {announcement.message && <p className="text-sm text-muted-foreground mt-1">{announcement.message}</p>}
+            </div>
+            <button onClick={() => setAnnouncementDismissed(true)} className="text-muted-foreground hover:text-foreground shrink-0">
+              <X className="h-4 w-4" />
+            </button>
+          </motion.div>
+        )}
 
         {/* Round Highlight */}
         {nextEvent && (
