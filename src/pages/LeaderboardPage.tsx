@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Trophy, Medal, TrendingUp, Loader2 } from "lucide-react";
+import { Trophy, Medal, TrendingUp, Loader2, Instagram } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import AppLayout from "@/components/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,15 +10,16 @@ const LeaderboardPage = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("leaderboard")
-        .select("*, profiles!inner(display_name)")
-        .order("points", { ascending: false })
-        .limit(50);
+        .select("*, profiles!inner(display_name, avatar_url, instagram)")
+        .order("points", { ascending: false });
       if (error) throw error;
       return data.map((entry, i) => ({
         rank: i + 1,
         user: (entry.profiles as any)?.display_name || "Anônimo",
         points: entry.points,
         wins: entry.wins,
+        avatarUrl: (entry.profiles as any)?.avatar_url || null,
+        instagram: (entry.profiles as any)?.instagram || null,
         avatar: ((entry.profiles as any)?.display_name || "??").slice(0, 2).toUpperCase(),
       }));
     },
@@ -26,11 +27,11 @@ const LeaderboardPage = () => {
 
   // Fallback to mock if no real data
   const displayData = leaderboard.length > 0 ? leaderboard : [
-    { rank: 1, user: "Carlos S.", points: 2450, wins: 8, avatar: "CS" },
-    { rank: 2, user: "Ana P.", points: 2380, wins: 7, avatar: "AP" },
-    { rank: 3, user: "João M.", points: 2210, wins: 7, avatar: "JM" },
-    { rank: 4, user: "Pedro L.", points: 2100, wins: 6, avatar: "PL" },
-    { rank: 5, user: "Maria R.", points: 1980, wins: 5, avatar: "MR" },
+    { rank: 1, user: "Carlos S.", points: 2450, wins: 8, avatar: "CS", avatarUrl: null, instagram: "@carlos_ufc" },
+    { rank: 2, user: "Ana P.", points: 2380, wins: 7, avatar: "AP", avatarUrl: null, instagram: "@ana_mma" },
+    { rank: 3, user: "João M.", points: 2210, wins: 7, avatar: "JM", avatarUrl: null, instagram: null },
+    { rank: 4, user: "Pedro L.", points: 2100, wins: 6, avatar: "PL", avatarUrl: null, instagram: "@pedro_fight" },
+    { rank: 5, user: "Maria R.", points: 1980, wins: 5, avatar: "MR", avatarUrl: null, instagram: null },
   ];
 
   return (
@@ -60,13 +61,20 @@ const LeaderboardPage = () => {
                       transition={{ delay: i * 0.15 }}
                       className={`glass-card rounded-xl p-6 text-center ${isFirst ? "border-accent/30 -mt-4" : ""}`}
                     >
-                      <div className={`mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full ${
+                      <div className={`mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full overflow-hidden ${
                         isFirst ? "bg-accent text-accent-foreground" : "bg-secondary text-muted-foreground"
                       }`}>
-                        {isFirst ? <Trophy className="h-7 w-7" /> : <Medal className="h-6 w-6" />}
+                        {e.avatarUrl ? (
+                          <img src={e.avatarUrl} alt={e.user} className="h-full w-full object-cover" />
+                        ) : isFirst ? <Trophy className="h-7 w-7" /> : <Medal className="h-6 w-6" />}
                       </div>
                       <div className="font-display text-2xl font-bold">{e.rank}º</div>
                       <div className="font-semibold mt-1">{e.user}</div>
+                      {e.instagram && (
+                        <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground mt-0.5">
+                          <Instagram className="h-3 w-3" /> {e.instagram}
+                        </div>
+                      )}
                       <div className="text-accent font-display text-lg font-bold mt-2">{e.points.toLocaleString()} pts</div>
                       <div className="text-xs text-muted-foreground mt-1">{e.wins} vitórias</div>
                     </motion.div>
@@ -92,12 +100,19 @@ const LeaderboardPage = () => {
                       }`}>
                         {entry.rank}
                       </span>
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary text-sm font-bold">
-                        {entry.avatar}
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary text-sm font-bold overflow-hidden">
+                        {entry.avatarUrl ? (
+                          <img src={entry.avatarUrl} alt={entry.user} className="h-full w-full object-cover" />
+                        ) : entry.avatar}
                       </div>
                       <div>
                         <span className="font-semibold">{entry.user}</span>
-                        <p className="text-xs text-muted-foreground">{entry.wins} vitórias</p>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <span>{entry.wins} vitórias</span>
+                          {entry.instagram && (
+                            <span className="flex items-center gap-0.5"><Instagram className="h-3 w-3" /> {entry.instagram}</span>
+                          )}
+                        </div>
                       </div>
                     </div>
                     <div className="flex items-center gap-3">
