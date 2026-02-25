@@ -10,6 +10,7 @@ import EventsPage from "./pages/EventsPage";
 import PredictionsPage from "./pages/PredictionsPage";
 import EventPredictionsPage from "./pages/EventPredictionsPage";
 import LeaderboardPage from "./pages/LeaderboardPage";
+import ProfilePage from "./pages/ProfilePage";
 import AuthPage from "./pages/AuthPage";
 import InputShowcase from "./pages/InputShowcase";
 import NotFound from "./pages/NotFound";
@@ -39,6 +40,7 @@ const App = () => (
             <Route path="/predictions" element={<PredictionsPage />} />
             <Route path="/predictions/:eventId" element={<EventPredictionsPage />} />
             <Route path="/leaderboard" element={<LeaderboardPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
             <Route path="/components/input" element={<InputShowcase />} />
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/admin/users" element={<AdminUsers />} />
