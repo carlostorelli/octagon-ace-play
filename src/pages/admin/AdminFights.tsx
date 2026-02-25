@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Plus, Trash2, Loader2, GripVertical } from "lucide-react";
+import { Plus, Trash2, Loader2, GripVertical, ClipboardPaste } from "lucide-react";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "react-router-dom";
@@ -9,6 +9,36 @@ import { Button } from "@/components/ui/button";
 import { OSSInput } from "@/components/ui/oss-input";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+
+function parseBulkFights(text: string): { fighterA: string; oddsA: number | null; fighterB: string; oddsB: number | null; cardType: string }[] {
+  const lines = text.trim().split("\n").filter((l) => l.trim());
+  const results: { fighterA: string; oddsA: number | null; fighterB: string; oddsB: number | null; cardType: string }[] = [];
+  let currentCard = "main";
+  let foundBlank = false;
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) { foundBlank = true; continue; }
+
+    // Pattern: Name (odds) vs Name (odds)
+    const match = trimmed.match(
+      /^(.+?)\s*\(([+-]?\d+)\)\s*vs\.?\s*(.+?)\s*\(([+-]?\d+)\)$/i
+    );
+    if (match) {
+      // If there was a blank line before and we already have fights, switch to prelim
+      if (foundBlank && results.length > 0) currentCard = "prelim";
+      foundBlank = false;
+      results.push({
+        fighterA: match[1].trim(),
+        oddsA: parseInt(match[2]),
+        fighterB: match[3].trim(),
+        oddsB: parseInt(match[4]),
+        cardType: currentCard,
+      });
+    }
+  }
+  return results;
+}
 
 const FIGHT_TYPES = [
   { value: "3_rounds", label: "3 Rounds" },
@@ -46,6 +76,8 @@ const AdminFights = () => {
   const [fightOrder, setFightOrder] = useState(1);
   const [oddsA, setOddsA] = useState("");
   const [oddsB, setOddsB] = useState("");
+  const [bulkText, setBulkText] = useState("");
+  const [showBulk, setShowBulk] = useState(false);
 
   const { data: event } = useQuery({
     queryKey: ["admin-event", eventId],
@@ -98,6 +130,39 @@ const AdminFights = () => {
       setOddsA("");
       setOddsB("");
       setFightOrder((prev) => prev + 1);
+      queryClient.invalidateQueries({ queryKey: ["admin-fights", eventId] });
+    },
+    onError: (err: any) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
+  });
+
+  const bulkMutation = useMutation({
+    mutationFn: async () => {
+      const parsed = parseBulkFights(bulkText);
+      if (parsed.length === 0) throw new Error("Nenhuma luta encontrada. Use o formato: Nome (odds) vs Nome (odds)");
+      for (let i = 0; i < parsed.length; i++) {
+        const f = parsed[i];
+        const [idA, idB] = await Promise.all([
+          findOrCreateFighter(f.fighterA),
+          findOrCreateFighter(f.fighterB),
+        ]);
+        const { error } = await supabase.from("fights").insert({
+          event_id: eventId!,
+          fighter_a_id: idA,
+          fighter_b_id: idB,
+          fight_type: "3_rounds",
+          card_type: f.cardType,
+          fight_order: i + 1,
+          odds_fighter_a: f.oddsA,
+          odds_fighter_b: f.oddsB,
+        });
+        if (error) throw error;
+      }
+      return parsed.length;
+    },
+    onSuccess: (count) => {
+      toast({ title: `${count} lutas importadas!` });
+      setBulkText("");
+      setShowBulk(false);
       queryClient.invalidateQueries({ queryKey: ["admin-fights", eventId] });
     },
     onError: (err: any) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
@@ -197,7 +262,43 @@ const AdminFights = () => {
           </Button>
         </div>
 
-        {/* Fights list */}
+        {/* Bulk import */}
+        <div className="glass-card rounded-xl p-6 space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="font-display text-sm font-bold uppercase tracking-wider text-primary">Importar Card Completo</h2>
+            <Button variant="ghost" size="sm" onClick={() => setShowBulk(!showBulk)}>
+              <ClipboardPaste className="h-4 w-4 mr-1" />
+              {showBulk ? "Fechar" : "Colar Card"}
+            </Button>
+          </div>
+          {showBulk && (
+            <div className="space-y-3">
+              <p className="text-xs text-muted-foreground">
+                Cole as lutas no formato: <code className="bg-muted px-1 rounded">Nome (-225) vs Nome (+172)</code><br />
+                Separe card principal do preliminar com uma linha em branco.
+              </p>
+              <textarea
+                className="w-full h-48 rounded-lg border border-[hsl(var(--input-border))] bg-input-surface px-3 py-2 text-sm text-foreground outline-none font-mono resize-y"
+                placeholder={`Brandon Moreno (-225) vs Lone'er Kavanagh (+172)\nDavid Martinez (-295) vs Marlon Vera (+220)\n\nDamian Pinas (-265) vs Wes Schultz (+200)`}
+                value={bulkText}
+                onChange={(e) => setBulkText(e.target.value)}
+              />
+              <div className="flex items-center gap-3">
+                <Button onClick={() => bulkMutation.mutate()} disabled={bulkMutation.isPending || !bulkText.trim()}>
+                  {bulkMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ClipboardPaste className="h-4 w-4" />}
+                  Importar {parseBulkFights(bulkText).length > 0 ? `(${parseBulkFights(bulkText).length} lutas)` : ""}
+                </Button>
+                {parseBulkFights(bulkText).length > 0 && (
+                  <span className="text-xs text-muted-foreground">
+                    {parseBulkFights(bulkText).filter(f => f.cardType === "main").length} principal · {parseBulkFights(bulkText).filter(f => f.cardType === "prelim").length} preliminar
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+
+
         {loadingFights ? (
           <div className="flex justify-center py-10"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
         ) : (
