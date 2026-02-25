@@ -6,6 +6,7 @@ import AppLayout from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const StatCard = ({ icon: Icon, label, value, accent }: { icon: any; label: string; value: string; accent?: boolean }) => (
   <div className="glass-card rounded-xl p-5">
@@ -16,6 +17,24 @@ const StatCard = ({ icon: Icon, label, value, accent }: { icon: any; label: stri
       <span className="text-sm text-muted-foreground">{label}</span>
     </div>
     <p className="font-display text-3xl font-bold">{value}</p>
+  </div>
+);
+
+const LeaderboardRow = ({ rank, user, points, wins, avatar }: { rank: number; user: string; points: number; wins: number; avatar: string }) => (
+  <div className={`flex items-center justify-between rounded-lg px-4 py-3 ${rank <= 3 ? "bg-primary/5 border border-primary/10" : "bg-secondary/50"}`}>
+    <div className="flex items-center gap-4">
+      <span className={`font-display text-lg font-bold w-6 text-center ${rank === 1 ? "text-accent" : rank <= 3 ? "text-primary" : "text-muted-foreground"}`}>
+        {rank}
+      </span>
+      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary text-sm font-semibold">
+        {avatar}
+      </div>
+      <span className="font-medium">{user}</span>
+    </div>
+    <div className="text-right">
+      <span className="font-display font-bold">{points.toLocaleString()}</span>
+      <span className="text-xs text-muted-foreground ml-2">{wins}W</span>
+    </div>
   </div>
 );
 
@@ -38,18 +57,18 @@ const Dashboard = () => {
     },
   });
 
-  // Fetch main card fights for the highlight
+  // Fetch fights for the next event
   const { data: mainFights = [] } = useQuery({
     queryKey: ["round-highlight-fights", nextEvent?.id],
     enabled: !!nextEvent?.id,
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("event_fighters")
-        .select("fighter_id, card_type, fight_order, fighters(name, country, salary, weight_class)")
+        .from("fights")
+        .select("*, fighter_a:fighters!fights_fighter_a_id_fkey(name, country), fighter_b:fighters!fights_fighter_b_id_fkey(name, country)")
         .eq("event_id", nextEvent!.id)
         .eq("card_type", "main")
         .order("fight_order", { ascending: true })
-        .limit(10);
+        .limit(4);
       if (error) throw error;
       return data ?? [];
     },
@@ -69,33 +88,64 @@ const Dashboard = () => {
     },
   });
 
-  const { data: leaderboardPreview = [] } = useQuery({
-    queryKey: ["leaderboard-preview"],
+  // Top 10 overall ranking
+  const { data: rankingGeral = [] } = useQuery({
+    queryKey: ["leaderboard-geral-top10"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("leaderboard")
         .select("*, profiles!inner(display_name)")
+        .is("event_id", null)
         .order("points", { ascending: false })
-        .limit(5);
+        .limit(10);
       if (error) throw error;
-      return data.map((entry, i) => ({
+      return (data ?? []).map((entry: any, i: number) => ({
         rank: i + 1,
-        user: (entry.profiles as any)?.display_name || "Anônimo",
+        user: entry.profiles?.display_name || "Anônimo",
         points: entry.points,
         wins: entry.wins,
-        avatar: ((entry.profiles as any)?.display_name || "??").slice(0, 2).toUpperCase(),
+        avatar: (entry.profiles?.display_name || "??").slice(0, 2).toUpperCase(),
       }));
     },
   });
 
-  // Fallback mock for leaderboard
-  const topEntries = leaderboardPreview.length > 0 ? leaderboardPreview : [
-    { rank: 1, user: "Carlos S.", points: 2450, wins: 8, avatar: "CS" },
-    { rank: 2, user: "Ana P.", points: 2380, wins: 7, avatar: "AP" },
-    { rank: 3, user: "João M.", points: 2210, wins: 7, avatar: "JM" },
-    { rank: 4, user: "Pedro L.", points: 2100, wins: 6, avatar: "PL" },
-    { rank: 5, user: "Maria R.", points: 1980, wins: 5, avatar: "MR" },
-  ];
+  // Completed events for event ranking tab
+  const { data: completedEvents = [] } = useQuery({
+    queryKey: ["completed-events-for-ranking"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("events")
+        .select("id, name, date")
+        .eq("status", "completed")
+        .order("date", { ascending: false })
+        .limit(5);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  // Top 10 for latest completed event
+  const latestEventId = completedEvents[0]?.id;
+  const { data: rankingEvento = [] } = useQuery({
+    queryKey: ["leaderboard-evento-top10", latestEventId],
+    enabled: !!latestEventId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("leaderboard")
+        .select("*, profiles!inner(display_name)")
+        .eq("event_id", latestEventId!)
+        .order("points", { ascending: false })
+        .limit(10);
+      if (error) throw error;
+      return (data ?? []).map((entry: any, i: number) => ({
+        rank: i + 1,
+        user: entry.profiles?.display_name || "Anônimo",
+        points: entry.points,
+        wins: entry.wins,
+        avatar: (entry.profiles?.display_name || "??").slice(0, 2).toUpperCase(),
+      }));
+    },
+  });
 
   return (
     <AppLayout>
@@ -130,18 +180,15 @@ const Dashboard = () => {
         {nextEvent && (
           <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
             <div className="glass-card rounded-xl overflow-hidden relative">
-              {/* Top accent bar */}
               <div className="h-1 w-full bg-gradient-to-r from-primary via-accent to-primary" />
-
               <div className="p-6 space-y-5">
-                {/* Header */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
                     <div className="flex items-center gap-2 mb-2">
                       <span className="font-mono text-xs uppercase tracking-widest text-primary">&gt; Rodada Ativa</span>
                       <div className="flex items-center gap-1.5 rounded-full bg-accent/10 text-accent px-3 py-1 text-xs font-semibold">
                         <div className="h-1.5 w-1.5 rounded-full bg-accent animate-pulse" />
-                        Escalação Aberta
+                        Palpites Abertos
                       </div>
                     </div>
                     <h2 className="font-display text-3xl font-bold uppercase tracking-tight">{nextEvent.name}</h2>
@@ -151,9 +198,9 @@ const Dashboard = () => {
                       <span className="flex items-center gap-1.5"><Swords className="h-3.5 w-3.5" />{nextEvent.fights_count} lutas</span>
                     </div>
                   </div>
-                  <Link to="/lineup">
+                  <Link to="/predictions">
                     <Button size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground font-display uppercase tracking-wider glow">
-                      Escalar Time <ArrowRight className="h-4 w-4 ml-2" />
+                      Fazer Palpites <ArrowRight className="h-4 w-4 ml-2" />
                     </Button>
                   </Link>
                 </div>
@@ -166,33 +213,24 @@ const Dashboard = () => {
                   </div>
                 )}
 
-                {/* Top fights preview */}
+                {/* Top fights preview from fights table */}
                 {mainFights.length > 0 && (
                   <div>
                     <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-3 block">Lutas Principais</span>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      {(() => {
-                        // Group fighters by fight_order into pairs
-                        const fightGroups: Record<number, any[]> = {};
-                        mainFights.forEach((f: any) => {
-                          const order = f.fight_order;
-                          if (!fightGroups[order]) fightGroups[order] = [];
-                          fightGroups[order].push(f);
-                        });
-                        return Object.entries(fightGroups).slice(0, 4).map(([order, fighters]) => (
-                          <div key={order} className="rounded-lg bg-secondary/50 border border-border/50 p-3 flex items-center justify-between">
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm">{(fighters[0]?.fighters as any)?.country}</span>
-                              <span className="font-display text-sm font-bold uppercase">{(fighters[0]?.fighters as any)?.name}</span>
-                            </div>
-                            <span className="font-mono text-xs text-muted-foreground">vs</span>
-                            <div className="flex items-center gap-2">
-                              <span className="font-display text-sm font-bold uppercase">{(fighters[1]?.fighters as any)?.name ?? "TBD"}</span>
-                              <span className="text-sm">{(fighters[1]?.fighters as any)?.country}</span>
-                            </div>
+                      {mainFights.map((fight: any) => (
+                        <div key={fight.id} className="rounded-lg bg-secondary/50 border border-border/50 p-3 flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm">{fight.fighter_a?.country}</span>
+                            <span className="font-display text-sm font-bold uppercase">{fight.fighter_a?.name}</span>
                           </div>
-                        ));
-                      })()}
+                          <span className="font-mono text-xs text-muted-foreground">vs</span>
+                          <div className="flex items-center gap-2">
+                            <span className="font-display text-sm font-bold uppercase">{fight.fighter_b?.name}</span>
+                            <span className="text-sm">{fight.fighter_b?.country}</span>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
                 )}
@@ -201,40 +239,49 @@ const Dashboard = () => {
           </motion.div>
         )}
 
-        {/* Leaderboard preview */}
+        {/* Leaderboard - Top 10 with Tabs */}
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="glass-card rounded-xl overflow-hidden">
-          <div className="p-6 pb-4">
-            <h2 className="font-display text-xl font-bold uppercase flex items-center gap-2">
-              <Trophy className="h-5 w-5 text-accent" /> Top 5 Ranking
+          <div className="p-6">
+            <h2 className="font-display text-xl font-bold uppercase flex items-center gap-2 mb-4">
+              <Trophy className="h-5 w-5 text-accent" /> Top 10 Ranking
             </h2>
-          </div>
-          <div className="px-6 pb-6">
-            <div className="space-y-2">
-              {topEntries.map((entry) => (
-                <div
-                  key={entry.rank}
-                  className={`flex items-center justify-between rounded-lg px-4 py-3 ${
-                    entry.rank <= 3 ? "bg-primary/5 border border-primary/10" : "bg-secondary/50"
-                  }`}
-                >
-                  <div className="flex items-center gap-4">
-                    <span className={`font-display text-lg font-bold w-6 text-center ${
-                      entry.rank === 1 ? "text-accent" : entry.rank <= 3 ? "text-primary" : "text-muted-foreground"
-                    }`}>
-                      {entry.rank}
-                    </span>
-                    <div className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary text-sm font-semibold">
-                      {entry.avatar}
-                    </div>
-                    <span className="font-medium">{entry.user}</span>
+            <Tabs defaultValue="geral">
+              <TabsList className="mb-4">
+                <TabsTrigger value="geral">Ranking Geral</TabsTrigger>
+                <TabsTrigger value="evento">Por Evento</TabsTrigger>
+              </TabsList>
+              <TabsContent value="geral">
+                {rankingGeral.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-6">Nenhum dado no ranking geral ainda.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {rankingGeral.map((entry: any) => (
+                      <LeaderboardRow key={entry.rank} {...entry} />
+                    ))}
                   </div>
-                  <div className="text-right">
-                    <span className="font-display font-bold">{entry.points.toLocaleString()}</span>
-                    <span className="text-xs text-muted-foreground ml-2">{entry.wins}W</span>
-                  </div>
-                </div>
-              ))}
-            </div>
+                )}
+              </TabsContent>
+              <TabsContent value="evento">
+                {completedEvents.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-6">Nenhum evento concluído ainda.</p>
+                ) : (
+                  <>
+                    <p className="text-xs text-muted-foreground mb-3">
+                      Último evento: <span className="font-semibold text-foreground">{completedEvents[0]?.name}</span>
+                    </p>
+                    {rankingEvento.length === 0 ? (
+                      <p className="text-sm text-muted-foreground text-center py-6">Nenhum dado de ranking para este evento.</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {rankingEvento.map((entry: any) => (
+                          <LeaderboardRow key={entry.rank} {...entry} />
+                        ))}
+                      </div>
+                    )}
+                  </>
+                )}
+              </TabsContent>
+            </Tabs>
           </div>
         </motion.div>
       </div>
