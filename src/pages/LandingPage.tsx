@@ -18,12 +18,12 @@ const LandingPage = () => {
             </span>
           </div>
           <div className="flex items-center gap-3">
-            <Link to="/dashboard">
+            <Link to="/auth">
               <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
                 Entrar
               </Button>
             </Link>
-            <Link to="/dashboard">
+            <Link to="/auth">
               <Button size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold">
                 Começar Grátis
               </Button>
@@ -49,24 +49,24 @@ const LandingPage = () => {
             className="max-w-2xl"
           >
             <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-1.5 text-xs font-mono font-medium text-primary uppercase tracking-widest">
-              &gt; OSS Fantasy — O Fantasy Game de MMA
+              &gt; OSS Fantasy — Palpites de MMA
             </div>
             <h1 className="font-display text-5xl sm:text-7xl font-bold uppercase leading-[0.95] tracking-tight mb-6">
-              Monte seu time.{" "}
+              Faça seus palpites.{" "}
               <span className="text-gradient">Domine o Octógono.</span>
             </h1>
             <p className="text-lg text-muted-foreground mb-8 max-w-lg leading-relaxed">
-              Escale lutadores, acumule pontos a cada KO, finalização e performance da noite — e concorra a brindes no sorteio! Sem apostas, só diversão.
+              Escolha o vencedor, método e round de cada luta — acumule pontos e concorra a brindes no sorteio! Sem apostas, só diversão.
             </p>
             <div className="flex flex-wrap gap-4">
-              <Link to="/dashboard">
+              <Link to="/predictions">
                 <Button size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground font-display uppercase tracking-wider text-base px-8 glow">
-                  Jogar Agora <ArrowRight className="ml-2 h-5 w-5" />
+                  Fazer Palpites <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </Link>
-              <Link to="/events">
+              <Link to="/leaderboard">
                 <Button size="lg" variant="outline" className="border-border text-foreground hover:bg-secondary font-display uppercase tracking-wider text-base px-8">
-                  Ver Eventos
+                  Ver Ranking
                 </Button>
               </Link>
             </div>
@@ -84,10 +84,10 @@ const LandingPage = () => {
             className="text-center mb-16"
           >
               <h2 className="font-display text-4xl font-bold uppercase tracking-tight mb-4">
-                Tudo que você precisa para <span className="text-gradient">se divertir</span>
+                Tudo que você precisa para <span className="text-gradient">competir</span>
               </h2>
               <p className="text-muted-foreground max-w-md mx-auto">
-                Fantasy MMA entre amigos — pontuação em tempo real e sorteio de brindes
+                Palpites detalhados por luta, ranking entre amigos e sorteio de brindes
               </p>
           </motion.div>
 
@@ -122,9 +122,9 @@ const LandingPage = () => {
                 Pronto para entrar no <span className="text-gradient">Octógono</span>?
               </h2>
               <p className="text-muted-foreground mb-8 max-w-md mx-auto">
-                Cadastre-se gratuitamente e comece a escalar seu time para o próximo evento UFC.
+                Cadastre-se gratuitamente e faça seus palpites para o próximo evento UFC.
               </p>
-              <Link to="/dashboard">
+              <Link to="/auth">
                 <Button size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground font-display uppercase tracking-wider text-base px-10 glow">
                   Criar Conta Grátis <ChevronRight className="ml-1 h-5 w-5" />
                 </Button>
