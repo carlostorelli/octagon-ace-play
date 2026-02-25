@@ -277,6 +277,35 @@ const PredictionsPage = () => {
           </div>
         )}
 
+        {/* Meus Palpites - resumo salvo */}
+        {user && existingPredictions.length > 0 && fights.length > 0 && (
+          <div className="space-y-3 pt-4">
+            <div className="flex items-center gap-2">
+              <Check className="h-4 w-4 text-accent" />
+              <span className="font-display text-sm font-bold uppercase tracking-wider text-accent">Meus Palpites</span>
+              <div className="flex-1 h-px bg-accent/20" />
+            </div>
+            <div className="glass-card rounded-xl divide-y divide-border overflow-hidden">
+              {fights.map((fight: any) => {
+                const pred = predictions[fight.id];
+                if (!pred) return null;
+                const winnerName = pred.winner_fighter_id === fight.fighter_a?.id
+                  ? fight.fighter_a?.name
+                  : fight.fighter_b?.name;
+                const methodLabel = pred.method === "Submission" ? "Finalização" : pred.method === "Decision" ? "Decisão" : pred.method;
+                return (
+                  <div key={fight.id} className="flex items-center justify-between px-4 py-3 text-sm">
+                    <span className="font-display font-bold uppercase text-foreground">{winnerName}</span>
+                    <span className="text-muted-foreground">
+                      {methodLabel}{pred.round ? ` — R${pred.round}` : ""}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
         {/* Save button */}
         {totalPredictions > 0 && user && !isLocked && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
