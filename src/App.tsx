@@ -8,6 +8,7 @@ import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import EventsPage from "./pages/EventsPage";
 import PredictionsPage from "./pages/PredictionsPage";
+import EventPredictionsPage from "./pages/EventPredictionsPage";
 import LeaderboardPage from "./pages/LeaderboardPage";
 import AuthPage from "./pages/AuthPage";
 import InputShowcase from "./pages/InputShowcase";
@@ -35,6 +36,7 @@ const App = () => (
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/events" element={<EventsPage />} />
             <Route path="/predictions" element={<PredictionsPage />} />
+            <Route path="/predictions/:eventId" element={<EventPredictionsPage />} />
             <Route path="/leaderboard" element={<LeaderboardPage />} />
             <Route path="/components/input" element={<InputShowcase />} />
             <Route path="/admin" element={<AdminDashboard />} />
