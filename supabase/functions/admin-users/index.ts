@@ -4,7 +4,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 serve(async (req) => {
@@ -35,13 +35,12 @@ serve(async (req) => {
     const url = new URL(req.url);
     const action = url.searchParams.get("action") || "list";
 
+    // LIST USERS
     if (req.method === "GET" && action === "list") {
-      const { data: { users }, error } = await adminClient.auth.admin.listUsers({ perPage: 100 });
+      const { data: { users }, error } = await adminClient.auth.admin.listUsers({ perPage: 500 });
       if (error) throw error;
 
-      // Get all roles
       const { data: roles } = await adminClient.from("user_roles").select("*");
-      // Get all profiles
       const { data: profiles } = await adminClient.from("profiles").select("*");
 
       const enriched = users.map((u) => ({
@@ -58,11 +57,11 @@ serve(async (req) => {
       });
     }
 
+    // TOGGLE ADMIN
     if (req.method === "POST" && action === "toggle-admin") {
       const { user_id } = await req.json();
       if (!user_id) throw new Error("user_id required");
 
-      // Check if already admin
       const { data: existing } = await adminClient
         .from("user_roles")
         .select("id")
@@ -71,18 +70,34 @@ serve(async (req) => {
         .maybeSingle();
 
       if (existing) {
-        // Remove admin
         await adminClient.from("user_roles").delete().eq("id", existing.id);
         return new Response(JSON.stringify({ action: "removed" }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       } else {
-        // Add admin
         await adminClient.from("user_roles").insert({ user_id, role: "admin" });
         return new Response(JSON.stringify({ action: "added" }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
+    }
+
+    // CREATE USER
+    if (req.method === "POST" && action === "create-user") {
+      const { email, password, display_name } = await req.json();
+      if (!email || !password) throw new Error("email and password required");
+
+      const { data, error } = await adminClient.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+        user_metadata: { display_name: display_name || email },
+      });
+      if (error) throw error;
+
+      return new Response(JSON.stringify({ user: { id: data.user.id, email: data.user.email } }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     return new Response(JSON.stringify({ error: "Unknown action" }), {

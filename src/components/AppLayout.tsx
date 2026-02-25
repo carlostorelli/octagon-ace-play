@@ -1,6 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Swords, Trophy, Calendar, BarChart3, Menu, X, Shield } from "lucide-react";
+import { Swords, Trophy, Calendar, BarChart3, Menu, X, Shield, User } from "lucide-react";
 import { useState } from "react";
 import { useAdmin } from "@/hooks/useAdmin";
 
@@ -9,6 +9,7 @@ const navItems = [
   { path: "/events", label: "Eventos", icon: Calendar },
   { path: "/predictions", label: "Palpites", icon: Swords },
   { path: "/leaderboard", label: "Ranking", icon: Trophy },
+  { path: "/profile", label: "Perfil", icon: User },
 ];
 
 const AppLayout = ({ children }: { children: React.ReactNode }) => {
