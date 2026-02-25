@@ -7,7 +7,7 @@ import { useAdmin } from "@/hooks/useAdmin";
 const navItems = [
   { path: "/dashboard", label: "Dashboard", icon: BarChart3 },
   { path: "/events", label: "Eventos", icon: Calendar },
-  { path: "/lineup", label: "Escalação", icon: Swords },
+  { path: "/predictions", label: "Palpites", icon: Swords },
   { path: "/leaderboard", label: "Ranking", icon: Trophy },
 ];
 
