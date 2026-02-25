@@ -16,6 +16,7 @@ const METHODS = [
   { value: "decision_majority", label: "Decisão Majoritária" },
   { value: "draw", label: "Empate" },
   { value: "no_contest", label: "No Contest" },
+  { value: "cancelled", label: "Cancelada" },
 ];
 
 const AdminResults = () => {
@@ -96,7 +97,8 @@ const AdminResults = () => {
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      const entries = Object.entries(results).filter(([_, r]) => r.winner_fighter_id || r.method === "draw" || r.method === "no_contest");
+      const noWinnerMethods = ["draw", "no_contest", "cancelled"];
+      const entries = Object.entries(results).filter(([_, r]) => r.winner_fighter_id || noWinnerMethods.includes(r.method));
       if (entries.length === 0) throw new Error("Nenhum resultado preenchido");
 
       for (const [fight_id, r] of entries) {
@@ -127,9 +129,11 @@ const AdminResults = () => {
 
   const mainFights = fights.filter((f: any) => f.card_type === "main");
   const prelimFights = fights.filter((f: any) => f.card_type === "prelim");
-  const filledCount = Object.values(results).filter((r) => r.winner_fighter_id || r.method === "draw" || r.method === "no_contest").length;
+  const noWinnerMethods = ["draw", "no_contest", "cancelled"];
+  const filledCount = Object.values(results).filter((r) => r.winner_fighter_id || noWinnerMethods.includes(r.method)).length;
 
   const isDecision = (method: string) => method.startsWith("decision");
+  const isNoWinner = (method: string) => noWinnerMethods.includes(method);
 
   const renderFight = (fight: any) => {
     const r = getResult(fight.id);
@@ -193,7 +197,7 @@ const AdminResults = () => {
         </div>
 
         {/* Round */}
-        {r.method && !isDecision(r.method) && r.method !== "draw" && r.method !== "no_contest" && (
+        {r.method && !isDecision(r.method) && !isNoWinner(r.method) && (
           <div>
             <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground font-display mb-2 block">Round</label>
             <div className="flex gap-2">
