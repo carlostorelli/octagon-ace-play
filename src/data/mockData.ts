@@ -92,12 +92,12 @@ export const MOCK_LEADERBOARD = [
 ];
 
 export const FEATURES = [
-  { icon: Swords, title: "Escale Lutadores", desc: "Monte seu time com salary cap e estratégia" },
-  { icon: Trophy, title: "Ranking & Sorteio", desc: "Acumule pontos e concorra a brindes" },
-  { icon: Zap, title: "Pontuação em Tempo Real", desc: "Acompanhe seus pontos durante o evento" },
-  { icon: BarChart3, title: "Estatísticas Avançadas", desc: "Análise detalhada de cada lutador" },
-  { icon: Users, title: "Comunidade", desc: "Chat na liga, convites e desafios" },
-  { icon: Shield, title: "Anti-Fraude", desc: "Sistema justo e transparente para todos" },
+  { icon: Swords, title: "Palpites por Luta", desc: "Escolha o vencedor, método e round de cada luta do card" },
+  { icon: Trophy, title: "Ranking & Sorteio", desc: "Acumule pontos e concorra a brindes exclusivos" },
+  { icon: Zap, title: "Pontuação Detalhada", desc: "Quanto mais detalhes acertar, mais pontos você ganha" },
+  { icon: BarChart3, title: "Bônus de Zebra", desc: "Acerte o azarão e ganhe pontos extras pelas odds" },
+  { icon: Users, title: "Ranking Global", desc: "Veja quem está no topo e dispute com seus amigos" },
+  { icon: Shield, title: "100% Grátis", desc: "Sem apostas, sem dinheiro — só diversão e brindes" },
 ];
 
 export const SCORING_RULES = [
