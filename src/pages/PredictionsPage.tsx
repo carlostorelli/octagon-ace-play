@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Swords, Check, Loader2, FileText, Download, ChevronDown, ChevronUp, Trophy } from "lucide-react";
+import { Swords, Check, Loader2, FileText, Download, ChevronDown, ChevronUp, Trophy, Lock, Clock } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import AppLayout from "@/components/AppLayout";
@@ -86,6 +86,20 @@ const PredictionsPage = () => {
     setPredictions((prev) => ({ ...prev, [fightId]: pred }));
   };
 
+  const now = new Date();
+  const predictionsOpen = nextEvent?.predictions_open_at ? new Date(nextEvent.predictions_open_at) : null;
+  const predictionsClose = nextEvent?.predictions_close_at ? new Date(nextEvent.predictions_close_at) : null;
+
+  const isBeforeOpen = predictionsOpen && now < predictionsOpen;
+  const isAfterClose = predictionsClose && now > predictionsClose;
+  const isLocked = isBeforeOpen || isAfterClose;
+
+  const lockMessage = isBeforeOpen
+    ? `Palpites abrem em ${predictionsOpen!.toLocaleString("pt-BR")}`
+    : isAfterClose
+    ? "Palpites encerrados para este evento"
+    : null;
+
   const totalPredictions = Object.keys(predictions).length;
   const totalFights = fights.length;
 
@@ -137,6 +151,19 @@ const PredictionsPage = () => {
             <p className="text-muted-foreground">Faça seus palpites para {nextEvent?.name ?? "o próximo evento"}</p>
           </div>
         </motion.div>
+
+        {/* Lock banner */}
+        {isLocked && (
+          <div className="glass-card rounded-xl p-5 border-destructive/30 bg-destructive/5">
+            <div className="flex items-center gap-3">
+              {isBeforeOpen ? <Clock className="h-5 w-5 text-accent" /> : <Lock className="h-5 w-5 text-destructive" />}
+              <div>
+                <p className="font-display font-bold text-sm uppercase">{isBeforeOpen ? "Palpites ainda não abertos" : "Palpites encerrados"}</p>
+                <p className="text-xs text-muted-foreground">{lockMessage}</p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Progress */}
         <div className="glass-card rounded-xl p-5">
@@ -210,6 +237,7 @@ const PredictionsPage = () => {
                     prediction={predictions[fight.id] ?? null}
                     onPredict={(pred) => setPrediction(fight.id, pred)}
                     index={i}
+                    disabled={!!isLocked}
                   />
                 ))}
               </>
@@ -228,6 +256,7 @@ const PredictionsPage = () => {
                     prediction={predictions[fight.id] ?? null}
                     onPredict={(pred) => setPrediction(fight.id, pred)}
                     index={mainFights.length + i}
+                    disabled={!!isLocked}
                   />
                 ))}
               </>
@@ -243,7 +272,7 @@ const PredictionsPage = () => {
         )}
 
         {/* Save button */}
-        {totalPredictions > 0 && user && (
+        {totalPredictions > 0 && user && !isLocked && (
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50">
             <Button
               size="lg"

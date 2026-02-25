@@ -68,6 +68,8 @@ export type Database = {
           location: string
           main_event: string
           name: string
+          predictions_close_at: string | null
+          predictions_open_at: string | null
           preview_notes: string
           preview_pdf_url: string | null
           status: string
@@ -80,6 +82,8 @@ export type Database = {
           location?: string
           main_event?: string
           name: string
+          predictions_close_at?: string | null
+          predictions_open_at?: string | null
           preview_notes?: string
           preview_pdf_url?: string | null
           status?: string
@@ -92,6 +96,8 @@ export type Database = {
           location?: string
           main_event?: string
           name?: string
+          predictions_close_at?: string | null
+          predictions_open_at?: string | null
           preview_notes?: string
           preview_pdf_url?: string | null
           status?: string
