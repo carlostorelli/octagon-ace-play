@@ -96,11 +96,12 @@ const EventPredictionsPage = () => {
 
   const isBeforeOpen = predictionsOpen && now < predictionsOpen;
   const isAfterClose = predictionsClose && now > predictionsClose;
-  const isLocked = isBeforeOpen || isAfterClose;
+  const isEventCompleted = event?.status === "completed";
+  const isLocked = isBeforeOpen || isAfterClose || isEventCompleted;
 
   const lockMessage = isBeforeOpen
     ? `Palpites abrem em ${predictionsOpen!.toLocaleString("pt-BR")}`
-    : isAfterClose
+    : isAfterClose || isEventCompleted
     ? "Palpites encerrados para este evento"
     : null;
 
@@ -111,7 +112,10 @@ const EventPredictionsPage = () => {
   const mainFights = fights.filter((f: any) => f.card_type === "main");
   const prelimFights = fights.filter((f: any) => f.card_type === "prelim");
 
-  const showFightCards = !hasSavedPredictions || isEditing;
+  // When locked: only show summary (read-only). Never allow editing.
+  const showFightCards = isLocked
+    ? (!hasSavedPredictions) // show cards read-only only if no predictions saved
+    : (!hasSavedPredictions || isEditing);
 
   const saveMutation = useMutation({
     mutationFn: async () => {
