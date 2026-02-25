@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Plus, Trash2, Loader2, GripVertical, ClipboardPaste } from "lucide-react";
+import { Plus, Trash2, Loader2, GripVertical, ClipboardPaste, Pencil } from "lucide-react";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "react-router-dom";
 import AdminLayout from "@/components/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { OSSInput } from "@/components/ui/oss-input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
@@ -90,6 +91,38 @@ const AdminFights = () => {
   const [oddsB, setOddsB] = useState("");
   const [bulkText, setBulkText] = useState("");
   const [showBulk, setShowBulk] = useState(false);
+  const [editFight, setEditFight] = useState<any>(null);
+  const [editOddsA, setEditOddsA] = useState("");
+  const [editOddsB, setEditOddsB] = useState("");
+  const [editFightType, setEditFightType] = useState("3_rounds");
+  const [editCardType, setEditCardType] = useState("main");
+
+  const openEdit = (fight: any) => {
+    setEditFight(fight);
+    setEditOddsA(fight.odds_fighter_a != null ? String(fight.odds_fighter_a) : "");
+    setEditOddsB(fight.odds_fighter_b != null ? String(fight.odds_fighter_b) : "");
+    setEditFightType(fight.fight_type);
+    setEditCardType(fight.card_type);
+  };
+
+  const editMutation = useMutation({
+    mutationFn: async () => {
+      if (!editFight) return;
+      const { error } = await supabase.from("fights").update({
+        fight_type: editFightType,
+        card_type: editCardType,
+        odds_fighter_a: editOddsA ? parseFloat(editOddsA) : null,
+        odds_fighter_b: editOddsB ? parseFloat(editOddsB) : null,
+      }).eq("id", editFight.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({ title: "Luta atualizada!" });
+      setEditFight(null);
+      queryClient.invalidateQueries({ queryKey: ["admin-fights", eventId] });
+    },
+    onError: (err: any) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
+  });
 
   const { data: event } = useQuery({
     queryKey: ["admin-event", eventId],
@@ -356,9 +389,14 @@ const AdminFights = () => {
                                       <span className="text-xs text-muted-foreground">· {fightTypeLabel(fight.fight_type)}</span>
                                     </div>
                                   </div>
-                                  <Button size="sm" variant="ghost" className="text-destructive" onClick={() => removeMutation.mutate(fight.id)}>
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
+                                  <div className="flex items-center gap-1">
+                                    <Button size="sm" variant="ghost" onClick={() => openEdit(fight)}>
+                                      <Pencil className="h-4 w-4" />
+                                    </Button>
+                                    <Button size="sm" variant="ghost" className="text-destructive" onClick={() => removeMutation.mutate(fight.id)}>
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                  </div>
                                 </div>
                               )}
                             </Draggable>
@@ -373,6 +411,48 @@ const AdminFights = () => {
             </div>
           </DragDropContext>
         )}
+
+        {/* Edit Dialog */}
+        <Dialog open={!!editFight} onOpenChange={(open) => !open && setEditFight(null)}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="font-display uppercase">
+                Editar: {editFight?.fighter_a?.name} vs {editFight?.fighter_b?.name}
+              </DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 pt-2">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground font-display">Tipo de Luta</label>
+                <select
+                  className="h-10 rounded-lg border border-[hsl(var(--input-border))] bg-input-surface px-3 text-sm text-foreground outline-none"
+                  value={editFightType}
+                  onChange={(e) => setEditFightType(e.target.value)}
+                >
+                  {FIGHT_TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+                </select>
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground font-display">Card</label>
+                <select
+                  className="h-10 rounded-lg border border-[hsl(var(--input-border))] bg-input-surface px-3 text-sm text-foreground outline-none"
+                  value={editCardType}
+                  onChange={(e) => setEditCardType(e.target.value)}
+                >
+                  <option value="main">Principal</option>
+                  <option value="prelim">Preliminar</option>
+                </select>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <OSSInput label={`Odds ${editFight?.fighter_a?.name}`} type="number" placeholder="-150" value={editOddsA} onChange={(e) => setEditOddsA(e.target.value)} />
+                <OSSInput label={`Odds ${editFight?.fighter_b?.name}`} type="number" placeholder="+200" value={editOddsB} onChange={(e) => setEditOddsB(e.target.value)} />
+              </div>
+              <Button className="w-full" onClick={() => editMutation.mutate()} disabled={editMutation.isPending}>
+                {editMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                Salvar Alterações
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </motion.div>
     </AdminLayout>
   );
