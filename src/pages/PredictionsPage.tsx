@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Swords, Check, Loader2, FileText, Download, ChevronDown, ChevronUp, Trophy, Lock, Clock } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -86,7 +86,13 @@ const PredictionsPage = () => {
     setPredictions((prev) => ({ ...prev, [fightId]: pred }));
   };
 
-  const now = new Date();
+  // Re-evaluate lock status every 30 seconds
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const interval = setInterval(() => setNow(new Date()), 30_000);
+    return () => clearInterval(interval);
+  }, []);
+
   const predictionsOpen = nextEvent?.predictions_open_at ? new Date(nextEvent.predictions_open_at) : null;
   const predictionsClose = nextEvent?.predictions_close_at ? new Date(nextEvent.predictions_close_at) : null;
 
