@@ -208,7 +208,7 @@ const Dashboard = () => {
                       ) : isBeforeOpen ? (
                         <div className="flex items-center gap-1.5 rounded-full bg-muted text-muted-foreground px-3 py-1 text-xs font-semibold">
                           <Clock className="h-3 w-3" />
-                          Abre em {predictionsOpen!.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                          Abre em {predictionsOpen!.toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
                         </div>
                       ) : (
                         <div className="flex items-center gap-1.5 rounded-full bg-destructive/10 text-destructive px-3 py-1 text-xs font-semibold">

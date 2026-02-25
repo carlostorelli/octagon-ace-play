@@ -26,10 +26,11 @@ const AdminEvents = () => {
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (!form.name || !form.date) throw new Error("Nome e data são obrigatórios");
+      const toUtcIso = (value: string) => (value ? new Date(value).toISOString() : null);
       const payload = {
         ...form,
-        predictions_open_at: form.predictions_open_at || null,
-        predictions_close_at: form.predictions_close_at || null,
+        predictions_open_at: toUtcIso(form.predictions_open_at),
+        predictions_close_at: toUtcIso(form.predictions_close_at),
       };
       if (editing) {
         const { error } = await supabase.from("events").update(payload).eq("id", editing);
@@ -62,11 +63,18 @@ const AdminEvents = () => {
 
   const startEdit = (event: any) => {
     setEditing(event.id);
+    const toDateTimeLocal = (value: string | null) => {
+      if (!value) return "";
+      const d = new Date(value);
+      const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
+      return local.toISOString().slice(0, 16);
+    };
+
     setForm({
       name: event.name, date: event.date, location: event.location, main_event: event.main_event,
       fights_count: event.fights_count, status: event.status,
-      predictions_open_at: event.predictions_open_at ? event.predictions_open_at.slice(0, 16) : "",
-      predictions_close_at: event.predictions_close_at ? event.predictions_close_at.slice(0, 16) : "",
+      predictions_open_at: toDateTimeLocal(event.predictions_open_at),
+      predictions_close_at: toDateTimeLocal(event.predictions_close_at),
       preview_notes: event.preview_notes || "",
       preview_pdf_url: event.preview_pdf_url || "",
     });
