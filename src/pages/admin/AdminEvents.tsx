@@ -12,7 +12,7 @@ import { Link } from "react-router-dom";
 const AdminEvents = () => {
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState<string | null>(null);
-  const [form, setForm] = useState({ name: "", date: "", location: "", main_event: "", fights_count: 14, status: "upcoming" });
+  const [form, setForm] = useState({ name: "", date: "", location: "", main_event: "", fights_count: 14, status: "upcoming", predictions_open_at: "", predictions_close_at: "" });
 
   const { data: events = [], isLoading } = useQuery({
     queryKey: ["admin-events"],
@@ -26,18 +26,23 @@ const AdminEvents = () => {
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (!form.name || !form.date) throw new Error("Nome e data são obrigatórios");
+      const payload = {
+        ...form,
+        predictions_open_at: form.predictions_open_at || null,
+        predictions_close_at: form.predictions_close_at || null,
+      };
       if (editing) {
-        const { error } = await supabase.from("events").update(form).eq("id", editing);
+        const { error } = await supabase.from("events").update(payload).eq("id", editing);
         if (error) throw error;
       } else {
-        const { error } = await supabase.from("events").insert(form);
+        const { error } = await supabase.from("events").insert(payload);
         if (error) throw error;
       }
     },
     onSuccess: () => {
       toast({ title: editing ? "Evento atualizado!" : "Evento criado!" });
       setEditing(null);
-      setForm({ name: "", date: "", location: "", main_event: "", fights_count: 14, status: "upcoming" });
+      setForm({ name: "", date: "", location: "", main_event: "", fights_count: 14, status: "upcoming", predictions_open_at: "", predictions_close_at: "" });
       queryClient.invalidateQueries({ queryKey: ["admin-events"] });
     },
     onError: (err: any) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
@@ -57,7 +62,12 @@ const AdminEvents = () => {
 
   const startEdit = (event: any) => {
     setEditing(event.id);
-    setForm({ name: event.name, date: event.date, location: event.location, main_event: event.main_event, fights_count: event.fights_count, status: event.status });
+    setForm({
+      name: event.name, date: event.date, location: event.location, main_event: event.main_event,
+      fights_count: event.fights_count, status: event.status,
+      predictions_open_at: event.predictions_open_at ? event.predictions_open_at.slice(0, 16) : "",
+      predictions_close_at: event.predictions_close_at ? event.predictions_close_at.slice(0, 16) : "",
+    });
   };
 
   return (
@@ -88,6 +98,8 @@ const AdminEvents = () => {
                 <option value="completed">Completed</option>
               </select>
             </div>
+            <OSSInput label="Palpites abrem em" type="datetime-local" value={form.predictions_open_at} onChange={(e) => setForm({ ...form, predictions_open_at: e.target.value })} />
+            <OSSInput label="Palpites fecham em" type="datetime-local" value={form.predictions_close_at} onChange={(e) => setForm({ ...form, predictions_close_at: e.target.value })} />
           </div>
           <div className="flex gap-2">
             <Button onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
@@ -95,7 +107,7 @@ const AdminEvents = () => {
               {editing ? "Salvar" : "Criar Evento"}
             </Button>
             {editing && (
-              <Button variant="ghost" onClick={() => { setEditing(null); setForm({ name: "", date: "", location: "", main_event: "", fights_count: 14, status: "upcoming" }); }}>
+              <Button variant="ghost" onClick={() => { setEditing(null); setForm({ name: "", date: "", location: "", main_event: "", fights_count: 14, status: "upcoming", predictions_open_at: "", predictions_close_at: "" }); }}>
                 Cancelar
               </Button>
             )}

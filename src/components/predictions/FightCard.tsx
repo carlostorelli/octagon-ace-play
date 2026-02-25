@@ -14,9 +14,10 @@ interface FightCardProps {
   prediction: { winner_fighter_id: string; method: string | null; round: number | null } | null;
   onPredict: (pred: { winner_fighter_id: string; method: string | null; round: number | null }) => void;
   index: number;
+  disabled?: boolean;
 }
 
-const FightCard = ({ fight, prediction, onPredict, index }: FightCardProps) => {
+const FightCard = ({ fight, prediction, onPredict, index, disabled = false }: FightCardProps) => {
   const [expanded, setExpanded] = useState(false);
   const fighterA = fight.fighter_a;
   const fighterB = fight.fighter_b;
@@ -29,6 +30,7 @@ const FightCard = ({ fight, prediction, onPredict, index }: FightCardProps) => {
   const maxRounds = fight.fight_type === "3_rounds" ? 3 : 5;
 
   const selectWinner = (fighterId: string) => {
+    if (disabled) return;
     onPredict({
       winner_fighter_id: fighterId,
       method: prediction?.method ?? null,
