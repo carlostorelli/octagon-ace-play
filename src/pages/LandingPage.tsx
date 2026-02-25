@@ -1,12 +1,43 @@
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { ArrowRight, ChevronRight } from "lucide-react";
+import { ArrowRight, ChevronRight, FileText, Loader2 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
-import { FEATURES } from "@/data/mockData";
+import { supabase } from "@/integrations/supabase/client";
 
 import heroImage from "@/assets/hero-octagon.jpg";
 
 const LandingPage = () => {
+  const { data: regulamento, isLoading: loadingReg } = useQuery({
+    queryKey: ["site-settings", "regulamento"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("site_settings")
+        .select("value")
+        .eq("key", "regulamento")
+        .maybeSingle();
+      if (error) throw error;
+      return data?.value ?? "";
+    },
+  });
+
+  // Simple markdown-like rendering (headings, lists, paragraphs)
+  const renderMarkdown = (text: string) => {
+    return text.split("\n").map((line, i) => {
+      const trimmed = line.trim();
+      if (!trimmed) return <br key={i} />;
+      if (trimmed.startsWith("# "))
+        return <h2 key={i} className="font-display text-2xl font-bold uppercase tracking-tight mb-3 mt-6">{trimmed.slice(2)}</h2>;
+      if (trimmed.startsWith("## "))
+        return <h3 key={i} className="font-display text-xl font-bold uppercase tracking-tight mb-2 mt-4">{trimmed.slice(3)}</h3>;
+      if (/^\d+\.\s/.test(trimmed))
+        return <li key={i} className="ml-6 list-decimal text-sm text-muted-foreground mb-1">{trimmed.replace(/^\d+\.\s/, "")}</li>;
+      if (trimmed.startsWith("- "))
+        return <li key={i} className="ml-6 list-disc text-sm text-muted-foreground mb-1">{trimmed.slice(2)}</li>;
+      return <p key={i} className="text-sm text-muted-foreground mb-1">{trimmed}</p>;
+    });
+  };
+
   return (
     <div className="min-h-screen bg-background">
       {/* Nav */}
@@ -33,7 +64,7 @@ const LandingPage = () => {
       </header>
 
       {/* Hero */}
-      <section className="relative min-h-[90vh] flex items-center overflow-hidden">
+      <section className="relative min-h-[70vh] flex items-center overflow-hidden">
         <div
           className="absolute inset-0 bg-cover bg-center"
           style={{ backgroundImage: `url(${heroImage})` }}
@@ -41,7 +72,7 @@ const LandingPage = () => {
         <div className="absolute inset-0 bg-gradient-to-r from-background via-background/85 to-background/40" />
         <div className="absolute inset-0" style={{ background: "var(--gradient-hero)" }} />
 
-        <div className="container relative z-10 py-32">
+        <div className="container relative z-10 py-28">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
@@ -59,9 +90,9 @@ const LandingPage = () => {
               Escolha o vencedor, método e round de cada luta — acumule pontos e concorra a brindes no sorteio! Sem apostas, só diversão.
             </p>
             <div className="flex flex-wrap gap-4">
-              <Link to="/predictions">
+              <Link to="/auth">
                 <Button size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground font-display uppercase tracking-wider text-base px-8 glow">
-                  Fazer Palpites <ArrowRight className="ml-2 h-5 w-5" />
+                  Começar Agora <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </Link>
               <Link to="/leaderboard">
@@ -74,63 +105,30 @@ const LandingPage = () => {
         </div>
       </section>
 
-      {/* Features */}
-      <section className="py-24 border-t border-border">
-        <div className="container">
+      {/* Regulamento */}
+      <section className="py-16 border-t border-border">
+        <div className="container max-w-3xl">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-center mb-16"
           >
-              <h2 className="font-display text-4xl font-bold uppercase tracking-tight mb-4">
-                Tudo que você precisa para <span className="text-gradient">competir</span>
-              </h2>
-              <p className="text-muted-foreground max-w-md mx-auto">
-                Palpites detalhados por luta, ranking entre amigos e sorteio de brindes
-              </p>
-          </motion.div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {FEATURES.map((feature, i) => (
-              <motion.div
-                key={feature.title}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1 }}
-                className="glass-card rounded-xl p-6 hover:border-primary/30 transition-colors group"
-              >
-                <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary group-hover:bg-primary group-hover:text-primary-foreground transition-colors">
-                  <feature.icon className="h-6 w-6" />
-                </div>
-                <h3 className="font-display text-lg font-semibold uppercase tracking-wide mb-2">{feature.title}</h3>
-                <p className="text-sm text-muted-foreground">{feature.desc}</p>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* CTA */}
-      <section className="py-24 border-t border-border">
-        <div className="container">
-          <div className="glass-card rounded-2xl p-12 text-center relative overflow-hidden">
-            <div className="absolute inset-0 bg-primary/5" />
-            <div className="relative z-10">
-              <h2 className="font-display text-4xl font-bold uppercase tracking-tight mb-4">
-                Pronto para entrar no <span className="text-gradient">Octógono</span>?
-              </h2>
-              <p className="text-muted-foreground mb-8 max-w-md mx-auto">
-                Cadastre-se gratuitamente e faça seus palpites para o próximo evento UFC.
-              </p>
-              <Link to="/auth">
-                <Button size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground font-display uppercase tracking-wider text-base px-10 glow">
-                  Criar Conta Grátis <ChevronRight className="ml-1 h-5 w-5" />
-                </Button>
-              </Link>
+            <div className="flex items-center gap-2 mb-6">
+              <FileText className="h-5 w-5 text-primary" />
+              <h2 className="font-display text-3xl font-bold uppercase tracking-tight">Regulamento</h2>
             </div>
-          </div>
+            <div className="glass-card rounded-xl p-8">
+              {loadingReg ? (
+                <div className="flex justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                </div>
+              ) : regulamento ? (
+                <div>{renderMarkdown(regulamento)}</div>
+              ) : (
+                <p className="text-muted-foreground text-sm">Nenhum regulamento cadastrado.</p>
+              )}
+            </div>
+          </motion.div>
         </div>
       </section>
 
