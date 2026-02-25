@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Trophy, Loader2, Check, Award, Star } from "lucide-react";
+import { Trophy, Loader2, Check, Award, Star, Calculator } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams } from "react-router-dom";
 import AdminLayout from "@/components/AdminLayout";
@@ -125,6 +125,24 @@ const AdminResults = () => {
       queryClient.invalidateQueries({ queryKey: ["admin-fight-results", eventId] });
     },
     onError: (err: any) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
+  });
+
+  const scoreMutation = useMutation({
+    mutationFn: async () => {
+      const { data, error } = await supabase.functions.invoke("calculate-scores", {
+        body: { event_id: eventId },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      return data;
+    },
+    onSuccess: (data) => {
+      toast({
+        title: "Pontuação calculada! 🏆",
+        description: `${data.users_scored} usuários pontuados a partir de ${data.total_predictions} palpites`,
+      });
+    },
+    onError: (err: any) => toast({ title: "Erro ao calcular", description: err.message, variant: "destructive" }),
   });
 
   const mainFights = fights.filter((f: any) => f.card_type === "main");
@@ -287,7 +305,7 @@ const AdminResults = () => {
         )}
 
         {filledCount > 0 && (
-          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="sticky bottom-6 flex justify-center z-50">
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="sticky bottom-6 flex justify-center gap-3 z-50">
             <Button
               size="lg"
               className="bg-primary hover:bg-primary/90 text-primary-foreground font-display uppercase tracking-wider text-base px-10 glow shadow-2xl"
@@ -296,6 +314,16 @@ const AdminResults = () => {
             >
               {saveMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Trophy className="h-4 w-4 mr-2" />}
               Salvar {filledCount} Resultado{filledCount > 1 ? "s" : ""}
+            </Button>
+            <Button
+              size="lg"
+              variant="outline"
+              className="font-display uppercase tracking-wider text-base px-8 shadow-2xl bg-background/90 backdrop-blur-sm"
+              onClick={() => scoreMutation.mutate()}
+              disabled={scoreMutation.isPending}
+            >
+              {scoreMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Calculator className="h-4 w-4 mr-2" />}
+              Calcular Pontuação
             </Button>
           </motion.div>
         )}
