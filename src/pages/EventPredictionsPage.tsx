@@ -197,13 +197,16 @@ const EventPredictionsPage = () => {
 
         {/* OSS Preview */}
         {event && (event.preview_notes || event.preview_pdf_url || (event as any).preview_video_url) && (
-          <div className="glass-card rounded-xl p-5 space-y-3">
+          <div className="glass-card rounded-xl p-5 space-y-5">
             <div className="flex items-center gap-2">
               <FileText className="h-4 w-4 text-primary" />
               <span className="font-display text-sm font-bold uppercase tracking-wider text-primary">Previsões do OSS</span>
             </div>
             {event.preview_notes && (
-              <p className="text-sm text-muted-foreground whitespace-pre-line">{event.preview_notes}</p>
+              <p className="text-sm text-muted-foreground whitespace-pre-line leading-relaxed">{event.preview_notes}</p>
+            )}
+            {event.preview_notes && (event as any).preview_video_url && (
+              <div className="h-px bg-border" />
             )}
             {(() => {
               const videoId = getYouTubeId((event as any).preview_video_url || "");
@@ -223,11 +226,14 @@ const EventPredictionsPage = () => {
               );
             })()}
             {event.preview_pdf_url && (
-              <a href={event.preview_pdf_url} target="_blank" rel="noopener noreferrer">
-                <Button variant="outline" size="sm" className="gap-2">
-                  <Download className="h-4 w-4" /> Abrir Análise Completa (PDF)
-                </Button>
-              </a>
+              <>
+                {((event as any).preview_video_url || event.preview_notes) && <div className="h-px bg-border" />}
+                <a href={event.preview_pdf_url} target="_blank" rel="noopener noreferrer">
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <Download className="h-4 w-4" /> Abrir Análise Completa (PDF)
+                  </Button>
+                </a>
+              </>
             )}
           </div>
         )}
