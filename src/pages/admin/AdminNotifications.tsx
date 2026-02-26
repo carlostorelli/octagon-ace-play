@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Bell, Send, Trash2, Loader2, Users, UserPlus, Megaphone, Save } from "lucide-react";
+import { Bell, Send, Trash2, Loader2, Users, UserPlus, Megaphone, Save, Plus, Pencil, X } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import AdminLayout from "@/components/AdminLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
@@ -22,9 +23,11 @@ const AdminNotifications = () => {
   const [announcementMessage, setAnnouncementMessage] = useState("");
   const [announcementActive, setAnnouncementActive] = useState(false);
 
-  // Welcome message state
-  const [welcomeTitle, setWelcomeTitle] = useState("Bem-vindo ao OSS Fantasy! 🎉");
-  const [welcomeMessage, setWelcomeMessage] = useState("Sua conta foi criada com sucesso. Explore os eventos e faça seus palpites!");
+  // Welcome message dialog state
+  const [welcomeDialogOpen, setWelcomeDialogOpen] = useState(false);
+  const [editingWelcome, setEditingWelcome] = useState<{ id: string; title: string; message: string } | null>(null);
+  const [welcomeFormTitle, setWelcomeFormTitle] = useState("");
+  const [welcomeFormMessage, setWelcomeFormMessage] = useState("");
 
   // Fetch announcement from site_settings
   const { data: announcementSettings } = useQuery({
@@ -33,7 +36,7 @@ const AdminNotifications = () => {
       const { data, error } = await supabase
         .from("site_settings")
         .select("*")
-        .in("key", ["announcement_title", "announcement_message", "announcement_active", "welcome_notif_title", "welcome_notif_message"]);
+        .in("key", ["announcement_title", "announcement_message", "announcement_active"]);
       if (error) throw error;
       return data ?? [];
     },
@@ -44,13 +47,9 @@ const AdminNotifications = () => {
       const t = announcementSettings.find((s: any) => s.key === "announcement_title");
       const m = announcementSettings.find((s: any) => s.key === "announcement_message");
       const a = announcementSettings.find((s: any) => s.key === "announcement_active");
-      const wt = announcementSettings.find((s: any) => s.key === "welcome_notif_title");
-      const wm = announcementSettings.find((s: any) => s.key === "welcome_notif_message");
       if (t) setAnnouncementTitle(t.value);
       if (m) setAnnouncementMessage(m.value);
       if (a) setAnnouncementActive(a.value === "true");
-      if (wt) setWelcomeTitle(wt.value);
-      if (wm) setWelcomeMessage(wm.value);
     }
   }, [announcementSettings]);
 
@@ -78,28 +77,61 @@ const AdminNotifications = () => {
     },
   });
 
-  // Save welcome message
-  const saveWelcome = useMutation({
-    mutationFn: async () => {
-      const upsertRow = async (key: string, value: string) => {
-        const { data: existing } = await supabase.from("site_settings").select("id").eq("key", key).maybeSingle();
-        if (existing) {
-          await supabase.from("site_settings").update({ value }).eq("key", key);
-        } else {
-          await supabase.from("site_settings").insert({ key, value });
-        }
-      };
-      await upsertRow("welcome_notif_title", welcomeTitle);
-      await upsertRow("welcome_notif_message", welcomeMessage);
+  // Welcome messages CRUD
+  const { data: welcomeMessages = [] } = useQuery({
+    queryKey: ["welcome-messages"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("welcome_messages").select("*").order("created_at", { ascending: true });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const saveWelcomeMsg = useMutation({
+    mutationFn: async ({ id, title, message }: { id?: string; title: string; message: string }) => {
+      if (id) {
+        const { error } = await supabase.from("welcome_messages").update({ title, message }).eq("id", id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.from("welcome_messages").insert({ title, message });
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["announcement-settings"] });
-      toast({ title: "Mensagem de boas-vindas salva" });
+      queryClient.invalidateQueries({ queryKey: ["welcome-messages"] });
+      setWelcomeDialogOpen(false);
+      setEditingWelcome(null);
+      toast({ title: editingWelcome ? "Mensagem atualizada" : "Mensagem criada" });
     },
     onError: () => {
       toast({ title: "Erro ao salvar", variant: "destructive" });
     },
   });
+
+  const deleteWelcomeMsg = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("welcome_messages").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["welcome-messages"] });
+      toast({ title: "Mensagem excluída" });
+    },
+  });
+
+  const openNewWelcome = () => {
+    setEditingWelcome(null);
+    setWelcomeFormTitle("");
+    setWelcomeFormMessage("");
+    setWelcomeDialogOpen(true);
+  };
+
+  const openEditWelcome = (msg: any) => {
+    setEditingWelcome(msg);
+    setWelcomeFormTitle(msg.title);
+    setWelcomeFormMessage(msg.message);
+    setWelcomeDialogOpen(true);
+  };
 
   // Fetch all profiles for broadcast
   const { data: profiles = [] } = useQuery({
@@ -248,18 +280,35 @@ const AdminNotifications = () => {
             </div>
             {(notifyNewUser?.enabled ?? true) && (
               <div className="space-y-3 rounded-lg border border-border/30 p-4">
-                <div className="space-y-1.5">
-                  <Label>Título da Mensagem</Label>
-                  <Input value={welcomeTitle} onChange={(e) => setWelcomeTitle(e.target.value)} placeholder="Bem-vindo ao OSS Fantasy! 🎉" />
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-medium">Mensagens de Boas-Vindas ({welcomeMessages.length})</p>
+                  <Button size="sm" variant="outline" className="gap-1.5" onClick={openNewWelcome}>
+                    <Plus className="h-3.5 w-3.5" /> Nova Mensagem
+                  </Button>
                 </div>
-                <div className="space-y-1.5">
-                  <Label>Mensagem</Label>
-                  <Textarea value={welcomeMessage} onChange={(e) => setWelcomeMessage(e.target.value)} rows={3} placeholder="Sua conta foi criada com sucesso..." />
-                </div>
-                <Button onClick={() => saveWelcome.mutate()} disabled={saveWelcome.isPending} size="sm" className="gap-1.5">
-                  {saveWelcome.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                  Salvar Mensagem
-                </Button>
+                <p className="text-xs text-muted-foreground">Uma mensagem aleatória será enviada para cada novo usuário.</p>
+                {welcomeMessages.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-4">Nenhuma mensagem cadastrada.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {welcomeMessages.map((wm: any) => (
+                      <div key={wm.id} className="flex items-start justify-between rounded-lg border border-border/30 p-3 gap-3">
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm truncate">{wm.title}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5 truncate">{wm.message}</p>
+                        </div>
+                        <div className="flex gap-1">
+                          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditWelcome(wm)}>
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-destructive" onClick={() => deleteWelcomeMsg.mutate(wm.id)}>
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </CardContent>
@@ -332,6 +381,36 @@ const AdminNotifications = () => {
           </CardContent>
         </Card>
       </motion.div>
+
+      {/* Welcome message dialog */}
+      <Dialog open={welcomeDialogOpen} onOpenChange={setWelcomeDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editingWelcome ? "Editar Mensagem" : "Nova Mensagem de Boas-Vindas"}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label>Título</Label>
+              <Input value={welcomeFormTitle} onChange={(e) => setWelcomeFormTitle(e.target.value)} placeholder="Bem-vindo ao OSS Fantasy! 🎉" />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Mensagem</Label>
+              <Textarea value={welcomeFormMessage} onChange={(e) => setWelcomeFormMessage(e.target.value)} rows={3} placeholder="Sua conta foi criada com sucesso..." />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setWelcomeDialogOpen(false)}>Cancelar</Button>
+            <Button
+              onClick={() => saveWelcomeMsg.mutate({ id: editingWelcome?.id, title: welcomeFormTitle.trim(), message: welcomeFormMessage.trim() })}
+              disabled={saveWelcomeMsg.isPending || !welcomeFormTitle.trim() || !welcomeFormMessage.trim()}
+              className="gap-1.5"
+            >
+              {saveWelcomeMsg.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              Salvar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AdminLayout>
   );
 };
