@@ -11,7 +11,9 @@ const LeaderboardPage = () => {
       const { data, error } = await supabase
         .from("leaderboard")
         .select("*, profiles!inner(display_name, avatar_url, instagram)")
-        .order("points", { ascending: false });
+        .is("event_id", null)
+        .order("points", { ascending: false })
+        .limit(100);
       if (error) throw error;
       return data.map((entry, i) => ({
         rank: i + 1,
