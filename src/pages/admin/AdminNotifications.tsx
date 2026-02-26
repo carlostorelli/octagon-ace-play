@@ -355,27 +355,54 @@ const AdminNotifications = () => {
               <p className="text-sm text-muted-foreground text-center py-6">Nenhuma notificação enviada ainda.</p>
             ) : (
               <div className="space-y-2 max-h-96 overflow-y-auto">
-                {recentNotifications.map((n: any) => (
-                  <div key={n.id} className="flex items-start justify-between rounded-lg border border-border/30 p-3 gap-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium text-sm truncate">{n.title}</span>
-                        <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono ${
-                          n.type === "welcome" ? "bg-accent/10 text-accent" :
-                          n.type === "admin_broadcast" ? "bg-primary/10 text-primary" :
-                          "bg-secondary text-muted-foreground"
-                        }`}>
-                          {n.type === "welcome" ? "boas-vindas" : n.type === "admin_broadcast" ? "broadcast" : n.type}
-                        </span>
+                {(() => {
+                  // Group broadcast/welcome by title+message+type, keep individual ones as-is
+                  const grouped: { key: string; sample: any; count: number; ids: string[] }[] = [];
+                  const seen = new Map<string, number>();
+                  for (const n of recentNotifications) {
+                    if (n.type === "admin_broadcast" || n.type === "welcome") {
+                      const key = `${n.type}||${n.title}||${n.message}`;
+                      if (seen.has(key)) {
+                        const idx = seen.get(key)!;
+                        grouped[idx].count++;
+                        grouped[idx].ids.push(n.id);
+                      } else {
+                        seen.set(key, grouped.length);
+                        grouped.push({ key, sample: n, count: 1, ids: [n.id] });
+                      }
+                    } else {
+                      grouped.push({ key: n.id, sample: n, count: 1, ids: [n.id] });
+                    }
+                  }
+                  return grouped.map((g) => (
+                    <div key={g.key} className="flex items-start justify-between rounded-lg border border-border/30 p-3 gap-3">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium text-sm truncate">{g.sample.title}</span>
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-mono ${
+                            g.sample.type === "welcome" ? "bg-accent/10 text-accent" :
+                            g.sample.type === "admin_broadcast" ? "bg-primary/10 text-primary" :
+                            "bg-secondary text-muted-foreground"
+                          }`}>
+                            {g.sample.type === "welcome" ? "boas-vindas" : g.sample.type === "admin_broadcast" ? "broadcast" : g.sample.type}
+                          </span>
+                          {g.count > 1 && (
+                            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-secondary text-muted-foreground font-mono">
+                              <Users className="inline h-3 w-3 mr-0.5" />{g.count} usuários
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-0.5 truncate">{g.sample.message}</p>
+                        <p className="text-[10px] text-muted-foreground mt-1">{new Date(g.sample.created_at).toLocaleString("pt-BR")}</p>
                       </div>
-                      <p className="text-xs text-muted-foreground mt-0.5 truncate">{n.message}</p>
-                      <p className="text-[10px] text-muted-foreground mt-1">{new Date(n.created_at).toLocaleString("pt-BR")}</p>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => {
+                        g.ids.forEach((id) => deleteNotif.mutate(id));
+                      }}>
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
                     </div>
-                    <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={() => deleteNotif.mutate(n.id)}>
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-                ))}
+                  ));
+                })()}
               </div>
             )}
           </CardContent>
