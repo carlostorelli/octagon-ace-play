@@ -72,6 +72,7 @@ export type Database = {
           predictions_open_at: string | null
           preview_notes: string
           preview_pdf_url: string | null
+          preview_video_url: string | null
           status: string
         }
         Insert: {
@@ -86,6 +87,7 @@ export type Database = {
           predictions_open_at?: string | null
           preview_notes?: string
           preview_pdf_url?: string | null
+          preview_video_url?: string | null
           status?: string
         }
         Update: {
@@ -100,6 +102,7 @@ export type Database = {
           predictions_open_at?: string | null
           preview_notes?: string
           preview_pdf_url?: string | null
+          preview_video_url?: string | null
           status?: string
         }
         Relationships: []

@@ -1,0 +1,1 @@
+ALTER TABLE public.events ADD COLUMN preview_video_url text DEFAULT '';
