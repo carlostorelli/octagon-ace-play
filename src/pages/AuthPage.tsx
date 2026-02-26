@@ -66,7 +66,6 @@ const AuthPage = () => {
           email,
           password,
           options: {
-            emailRedirectTo: window.location.origin,
             data: {
               display_name: displayName.trim(),
               instagram: instagram.trim(),
@@ -75,10 +74,8 @@ const AuthPage = () => {
         });
         if (error) throw error;
 
-        toast({
-          title: "Conta criada!",
-          description: "Verifique seu email para confirmar o cadastro.",
-        });
+        toast({ title: "Conta criada com sucesso!" });
+        navigate("/dashboard");
       }
     } catch (err: any) {
       toast({
