@@ -16,6 +16,7 @@ const EventPredictionsPage = lazy(() => import("./pages/EventPredictionsPage"));
 const LeaderboardPage = lazy(() => import("./pages/LeaderboardPage"));
 const ProfilePage = lazy(() => import("./pages/ProfilePage"));
 const AuthPage = lazy(() => import("./pages/AuthPage"));
+const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
 const LineupPage = lazy(() => import("./pages/LineupPage"));
 const InputShowcase = lazy(() => import("./pages/InputShowcase"));
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -55,6 +56,7 @@ const App = () => (
             <Routes>
               <Route path="/" element={<LandingPage />} />
               <Route path="/auth" element={<AuthPage />} />
+              <Route path="/reset-password" element={<ResetPasswordPage />} />
               <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/events" element={<EventsPage />} />
               <Route path="/predictions" element={<PredictionsPage />} />
