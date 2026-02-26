@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Key, Mail, Eye, EyeOff, Save, CheckCircle, MessageCircle, Loader2, Globe } from "lucide-react";
+import { Key, Mail, Eye, EyeOff, Save, CheckCircle, MessageCircle, Loader2, Globe, Upload } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import AdminLayout from "@/components/AdminLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -405,19 +405,41 @@ const AdminSettings = () => {
                   <p className="text-xs text-muted-foreground">Aparece nos resultados de busca do Google.</p>
                 </div>
                 <div className="space-y-1.5">
-                  <Label>URL do Favicon</Label>
-                  <Input
-                    placeholder="https://exemplo.com/favicon.png"
-                    value={siteFaviconUrl}
-                    onChange={(e) => setSiteFaviconUrl(e.target.value)}
-                  />
-                  <p className="text-xs text-muted-foreground">URL de uma imagem .png ou .ico para o ícone da aba.</p>
-                  {siteFaviconUrl && (
-                    <div className="flex items-center gap-2 mt-2">
-                      <img src={siteFaviconUrl} alt="Preview favicon" className="h-8 w-8 rounded border border-border object-contain" />
-                      <span className="text-xs text-muted-foreground">Preview</span>
-                    </div>
-                  )}
+                  <Label>Favicon (ícone da aba)</Label>
+                  <div className="flex items-center gap-4">
+                    {siteFaviconUrl && (
+                      <img src={siteFaviconUrl} alt="Favicon atual" className="h-10 w-10 rounded border border-border object-contain bg-background" />
+                    )}
+                    <label className="flex items-center gap-2 cursor-pointer px-4 py-2 rounded-md border border-border bg-secondary hover:bg-secondary/80 transition-colors text-sm">
+                      <Upload className="h-4 w-4" />
+                      {siteFaviconUrl ? "Trocar ícone" : "Enviar ícone"}
+                      <input
+                        type="file"
+                        accept="image/png,image/x-icon,image/svg+xml,image/jpeg,image/webp"
+                        className="hidden"
+                        onChange={async (e) => {
+                          const file = e.target.files?.[0];
+                          if (!file) return;
+                          if (file.size > 2 * 1024 * 1024) {
+                            toast({ title: "Erro", description: "O arquivo deve ter no máximo 2MB.", variant: "destructive" });
+                            return;
+                          }
+                          const ext = file.name.split(".").pop() || "png";
+                          const filePath = `favicon.${ext}`;
+                          const { error } = await supabase.storage.from("site-assets").upload(filePath, file, { upsert: true });
+                          if (error) {
+                            toast({ title: "Erro no upload", description: error.message, variant: "destructive" });
+                            return;
+                          }
+                          const { data: urlData } = supabase.storage.from("site-assets").getPublicUrl(filePath);
+                          const url = urlData.publicUrl + "?t=" + Date.now();
+                          setSiteFaviconUrl(url);
+                          toast({ title: "Ícone enviado!", description: "Clique em Salvar para aplicar." });
+                        }}
+                      />
+                    </label>
+                  </div>
+                  <p className="text-xs text-muted-foreground">Envie uma imagem .png, .ico ou .svg (máx. 2MB).</p>
                 </div>
                 <Button
                   onClick={() => saveSiteMeta.mutate()}
