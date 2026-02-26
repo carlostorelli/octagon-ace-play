@@ -12,7 +12,7 @@ import { Link } from "react-router-dom";
 const AdminEvents = () => {
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState<string | null>(null);
-  const [form, setForm] = useState({ name: "", date: "", location: "", main_event: "", fights_count: 14, status: "upcoming", predictions_open_at: "", predictions_close_at: "", preview_notes: "", preview_pdf_url: "" });
+  const [form, setForm] = useState({ name: "", date: "", location: "", main_event: "", fights_count: 14, status: "upcoming", predictions_open_at: "", predictions_close_at: "", preview_notes: "", preview_pdf_url: "", preview_video_url: "" });
 
   const { data: events = [], isLoading } = useQuery({
     queryKey: ["admin-events"],
@@ -43,7 +43,7 @@ const AdminEvents = () => {
     onSuccess: () => {
       toast({ title: editing ? "Evento atualizado!" : "Evento criado!" });
       setEditing(null);
-      setForm({ name: "", date: "", location: "", main_event: "", fights_count: 14, status: "upcoming", predictions_open_at: "", predictions_close_at: "", preview_notes: "", preview_pdf_url: "" });
+      setForm({ name: "", date: "", location: "", main_event: "", fights_count: 14, status: "upcoming", predictions_open_at: "", predictions_close_at: "", preview_notes: "", preview_pdf_url: "", preview_video_url: "" });
       queryClient.invalidateQueries({ queryKey: ["admin-events"] });
     },
     onError: (err: any) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
@@ -77,6 +77,7 @@ const AdminEvents = () => {
       predictions_close_at: toDateTimeLocal(event.predictions_close_at),
       preview_notes: event.preview_notes || "",
       preview_pdf_url: event.preview_pdf_url || "",
+      preview_video_url: event.preview_video_url || "",
     });
   };
 
@@ -111,6 +112,7 @@ const AdminEvents = () => {
             <OSSInput label="Palpites abrem em" type="datetime-local" value={form.predictions_open_at} onChange={(e) => setForm({ ...form, predictions_open_at: e.target.value })} />
             <OSSInput label="Palpites fecham em" type="datetime-local" value={form.predictions_close_at} onChange={(e) => setForm({ ...form, predictions_close_at: e.target.value })} />
             <OSSInput label="Link PDF Análise" placeholder="https://drive.google.com/..." value={form.preview_pdf_url} onChange={(e) => setForm({ ...form, preview_pdf_url: e.target.value })} />
+            <OSSInput label="Vídeo YouTube" placeholder="https://www.youtube.com/watch?v=..." value={form.preview_video_url} onChange={(e) => setForm({ ...form, preview_video_url: e.target.value })} />
           </div>
           <div>
             <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground font-display">Previsões do OSS (Estratégia)</label>
@@ -127,7 +129,7 @@ const AdminEvents = () => {
               {editing ? "Salvar" : "Criar Evento"}
             </Button>
             {editing && (
-              <Button variant="ghost" onClick={() => { setEditing(null); setForm({ name: "", date: "", location: "", main_event: "", fights_count: 14, status: "upcoming", predictions_open_at: "", predictions_close_at: "", preview_notes: "", preview_pdf_url: "" }); }}>
+              <Button variant="ghost" onClick={() => { setEditing(null); setForm({ name: "", date: "", location: "", main_event: "", fights_count: 14, status: "upcoming", predictions_open_at: "", predictions_close_at: "", preview_notes: "", preview_pdf_url: "", preview_video_url: "" }); }}>
                 Cancelar
               </Button>
             )}
