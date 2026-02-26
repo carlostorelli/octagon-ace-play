@@ -34,10 +34,13 @@ const AdminDashboard = () => {
     queryFn: async () => {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) return { count: 0 };
-      const res = await supabase.functions.invoke("admin-users", {
-        headers: { Authorization: `Bearer ${session.access_token}` },
-      });
-      return { count: Array.isArray(res.data) ? res.data.length : 0 };
+      const projectId = import.meta.env.VITE_SUPABASE_PROJECT_ID;
+      const res = await fetch(
+        `https://${projectId}.supabase.co/functions/v1/admin-users?action=list`,
+        { headers: { Authorization: `Bearer ${session.access_token}`, apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY } }
+      );
+      const data = await res.json();
+      return { count: Array.isArray(data) ? data.length : 0 };
     },
   });
 
