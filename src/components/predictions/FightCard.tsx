@@ -89,12 +89,11 @@ const FightCard = ({ fight, prediction, onPredict, index, disabled = false, lock
             {/* Fighter A */}
             <button
               onClick={() => selectWinner(fighterA.id)}
-              disabled={disabled}
-              className={`flex flex-col items-center gap-1.5 p-3 rounded-xl transition-all border ${
+              className={`flex flex-col items-center gap-1.5 p-3 rounded-xl transition-all border cursor-pointer ${
                 selectedWinner === fighterA.id
                   ? "border-primary bg-primary/10"
                   : "border-transparent hover:bg-secondary"
-              } disabled:opacity-50`}
+              } ${disabled ? "opacity-50" : ""}`}
             >
               <span className="font-display font-bold uppercase text-sm text-center leading-tight">{fighterA.name}</span>
               <span className="text-xs text-muted-foreground">{fighterA.record}</span>
@@ -110,12 +109,11 @@ const FightCard = ({ fight, prediction, onPredict, index, disabled = false, lock
             {/* Fighter B */}
             <button
               onClick={() => selectWinner(fighterB.id)}
-              disabled={disabled}
-              className={`flex flex-col items-center gap-1.5 p-3 rounded-xl transition-all border ${
+              className={`flex flex-col items-center gap-1.5 p-3 rounded-xl transition-all border cursor-pointer ${
                 selectedWinner === fighterB.id
                   ? "border-primary bg-primary/10"
                   : "border-transparent hover:bg-secondary"
-              } disabled:opacity-50`}
+              } ${disabled ? "opacity-50" : ""}`}
             >
               <span className="font-display font-bold uppercase text-sm text-center leading-tight">{fighterB.name}</span>
               <span className="text-xs text-muted-foreground">{fighterB.record}</span>
