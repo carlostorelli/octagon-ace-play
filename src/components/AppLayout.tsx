@@ -7,7 +7,6 @@ import NotificationBell from "@/components/NotificationBell";
 
 const navItems = [
   { path: "/dashboard", label: "Dashboard", icon: BarChart3 },
-  { path: "/events", label: "Eventos", icon: Calendar },
   { path: "/predictions", label: "Palpites", icon: Swords },
   { path: "/leaderboard", label: "Ranking", icon: Trophy },
   { path: "/profile", label: "Perfil", icon: User },
