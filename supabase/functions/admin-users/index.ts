@@ -49,7 +49,9 @@ serve(async (req) => {
         created_at: u.created_at,
         display_name: profiles?.find((p) => p.user_id === u.id)?.display_name || u.email,
         avatar_url: profiles?.find((p) => p.user_id === u.id)?.avatar_url,
+        instagram: profiles?.find((p) => p.user_id === u.id)?.instagram || "",
         roles: roles?.filter((r) => r.user_id === u.id).map((r) => r.role) || [],
+        banned: u.banned_until ? (new Date(u.banned_until) > new Date() || u.banned_until === "forever") : false,
       }));
 
       return new Response(JSON.stringify(enriched), {
@@ -96,6 +98,97 @@ serve(async (req) => {
       if (error) throw error;
 
       return new Response(JSON.stringify({ user: { id: data.user.id, email: data.user.email } }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // DELETE USER
+    if (req.method === "POST" && action === "delete-user") {
+      const { user_id } = await req.json();
+      if (!user_id) throw new Error("user_id required");
+      if (user_id === caller.id) throw new Error("Você não pode excluir a si mesmo");
+
+      const { error } = await adminClient.auth.admin.deleteUser(user_id);
+      if (error) throw error;
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // BAN USER
+    if (req.method === "POST" && action === "ban-user") {
+      const { user_id } = await req.json();
+      if (!user_id) throw new Error("user_id required");
+      if (user_id === caller.id) throw new Error("Você não pode bloquear a si mesmo");
+
+      const { error } = await adminClient.auth.admin.updateUserById(user_id, {
+        ban_duration: "876000h", // ~100 years
+      });
+      if (error) throw error;
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // UNBAN USER
+    if (req.method === "POST" && action === "unban-user") {
+      const { user_id } = await req.json();
+      if (!user_id) throw new Error("user_id required");
+
+      const { error } = await adminClient.auth.admin.updateUserById(user_id, {
+        ban_duration: "none",
+      });
+      if (error) throw error;
+
+      return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // RESET PASSWORD (generates a recovery link)
+    if (req.method === "POST" && action === "reset-password") {
+      const { user_id } = await req.json();
+      if (!user_id) throw new Error("user_id required");
+
+      // Get user email
+      const { data: { user: targetUser }, error: getUserError } = await adminClient.auth.admin.getUserById(user_id);
+      if (getUserError || !targetUser?.email) throw new Error("Usuário não encontrado");
+
+      // Generate recovery link
+      const { data, error } = await adminClient.auth.admin.generateLink({
+        type: "recovery",
+        email: targetUser.email,
+      });
+      if (error) throw error;
+
+      return new Response(JSON.stringify({ success: true, email: targetUser.email }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // UPDATE USER (display_name, email)
+    if (req.method === "POST" && action === "update-user") {
+      const { user_id, display_name, email } = await req.json();
+      if (!user_id) throw new Error("user_id required");
+
+      // Update auth email if changed
+      if (email) {
+        const { error } = await adminClient.auth.admin.updateUserById(user_id, { email });
+        if (error) throw error;
+      }
+
+      // Update profile display_name
+      if (display_name) {
+        const { error } = await adminClient
+          .from("profiles")
+          .update({ display_name })
+          .eq("user_id", user_id);
+        if (error) throw error;
+      }
+
+      return new Response(JSON.stringify({ success: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }

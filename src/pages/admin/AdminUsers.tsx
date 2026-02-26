@@ -1,7 +1,10 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { Users, Shield, ShieldOff, Loader2, Bell, UserPlus } from "lucide-react";
+import {
+  Users, Shield, ShieldOff, Loader2, UserPlus, MoreHorizontal,
+  Trash2, Ban, Unlock, KeyRound, Pencil, Mail,
+} from "lucide-react";
 import AdminLayout from "@/components/AdminLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
@@ -9,7 +12,16 @@ import { Button } from "@/components/ui/button";
 import { OSSInput } from "@/components/ui/oss-input";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import {
+  DropdownMenu, DropdownMenuContent, DropdownMenuItem,
+  DropdownMenuSeparator, DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel,
+  AlertDialogContent, AlertDialogDescription, AlertDialogFooter,
+  AlertDialogHeader, AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 
 interface AdminUser {
@@ -18,21 +30,40 @@ interface AdminUser {
   created_at: string;
   display_name: string;
   avatar_url: string | null;
+  instagram: string;
   roles: string[];
+  banned: boolean;
 }
 
 const AdminUsers = () => {
   const [search, setSearch] = useState("");
   const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [banDialogOpen, setBanDialogOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
   const [newEmail, setNewEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [newName, setNewName] = useState("");
+  const [editName, setEditName] = useState("");
+  const [editEmail, setEditEmail] = useState("");
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
   const getAuthHeader = async () => {
     const { data: { session } } = await supabase.auth.getSession();
     return { Authorization: `Bearer ${session?.access_token}` };
+  };
+
+  const invokeAction = async (action: string, body: Record<string, any>) => {
+    const headers = await getAuthHeader();
+    const res = await supabase.functions.invoke(`admin-users?action=${action}`, {
+      method: "POST",
+      body,
+      headers,
+    });
+    if (res.error) throw res.error;
+    return res.data;
   };
 
   const { data: users = [], isLoading } = useQuery({
@@ -49,50 +80,95 @@ const AdminUsers = () => {
   });
 
   const toggleAdmin = useMutation({
-    mutationFn: async (userId: string) => {
-      const headers = await getAuthHeader();
-      const res = await supabase.functions.invoke("admin-users?action=toggle-admin", {
-        method: "POST",
-        body: { user_id: userId },
-        headers,
-      });
-      if (res.error) throw res.error;
-      return res.data;
-    },
+    mutationFn: (userId: string) => invokeAction("toggle-admin", { user_id: userId }),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["admin-users"] });
-      toast({
-        title: data.action === "added" ? "Admin adicionado" : "Admin removido",
-      });
+      toast({ title: data.action === "added" ? "Admin adicionado" : "Admin removido" });
     },
-    onError: (err: any) => {
-      toast({ title: "Erro", description: err.message, variant: "destructive" });
-    },
+    onError: (err: any) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
   });
 
   const createUser = useMutation({
-    mutationFn: async () => {
-      const headers = await getAuthHeader();
-      const res = await supabase.functions.invoke("admin-users?action=create-user", {
-        method: "POST",
-        body: { email: newEmail, password: newPassword, display_name: newName },
-        headers,
-      });
-      if (res.error) throw res.error;
-      return res.data;
-    },
+    mutationFn: () => invokeAction("create-user", { email: newEmail, password: newPassword, display_name: newName }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["admin-users"] });
       toast({ title: "Usuário criado com sucesso!" });
       setAddDialogOpen(false);
-      setNewEmail("");
-      setNewPassword("");
-      setNewName("");
+      setNewEmail(""); setNewPassword(""); setNewName("");
     },
-    onError: (err: any) => {
-      toast({ title: "Erro", description: err.message, variant: "destructive" });
-    },
+    onError: (err: any) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
   });
+
+  const deleteUser = useMutation({
+    mutationFn: (userId: string) => invokeAction("delete-user", { user_id: userId }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+      toast({ title: "Usuário excluído" });
+      setDeleteDialogOpen(false);
+      setSelectedUser(null);
+    },
+    onError: (err: any) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
+  });
+
+  const banUser = useMutation({
+    mutationFn: (userId: string) => invokeAction("ban-user", { user_id: userId }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+      toast({ title: "Usuário bloqueado" });
+      setBanDialogOpen(false);
+      setSelectedUser(null);
+    },
+    onError: (err: any) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
+  });
+
+  const unbanUser = useMutation({
+    mutationFn: (userId: string) => invokeAction("unban-user", { user_id: userId }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+      toast({ title: "Usuário desbloqueado" });
+    },
+    onError: (err: any) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
+  });
+
+  const resetPassword = useMutation({
+    mutationFn: (userId: string) => invokeAction("reset-password", { user_id: userId }),
+    onSuccess: (data) => {
+      toast({ title: "Link de recuperação enviado", description: `Email enviado para ${data.email}` });
+    },
+    onError: (err: any) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
+  });
+
+  const updateUser = useMutation({
+    mutationFn: () => invokeAction("update-user", {
+      user_id: selectedUser?.id,
+      display_name: editName,
+      email: editEmail !== selectedUser?.email ? editEmail : undefined,
+    }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+      toast({ title: "Usuário atualizado" });
+      setEditDialogOpen(false);
+      setSelectedUser(null);
+    },
+    onError: (err: any) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
+  });
+
+  const openEdit = (user: AdminUser) => {
+    setSelectedUser(user);
+    setEditName(user.display_name);
+    setEditEmail(user.email);
+    setEditDialogOpen(true);
+  };
+
+  const openDelete = (user: AdminUser) => {
+    setSelectedUser(user);
+    setDeleteDialogOpen(true);
+  };
+
+  const openBan = (user: AdminUser) => {
+    setSelectedUser(user);
+    setBanDialogOpen(true);
+  };
 
   const filtered = users.filter(
     (u) =>
@@ -110,7 +186,7 @@ const AdminUsers = () => {
           </div>
           <div className="flex flex-wrap items-center gap-2 w-full sm:w-auto">
             <Button size="sm" className="gap-2" onClick={() => setAddDialogOpen(true)}>
-              <UserPlus className="h-4 w-4" /> Adicionar Usuário
+              <UserPlus className="h-4 w-4" /> Adicionar
             </Button>
             <OSSInput
               variant="search"
@@ -160,33 +236,63 @@ const AdminUsers = () => {
                               <Shield className="h-3 w-3 mr-1" /> Admin
                             </Badge>
                           )}
+                          {user.banned && (
+                            <Badge variant="destructive" className="text-xs">
+                              <Ban className="h-3 w-3 mr-1" /> Bloqueado
+                            </Badge>
+                          )}
                         </div>
-                        <p className="text-xs text-muted-foreground truncate">
-                          ID: {user.id}
-                        </p>
+                        <p className="text-xs text-muted-foreground truncate">{user.email}</p>
                         <p className="text-xs text-muted-foreground">
                           Desde {new Date(user.created_at).toLocaleDateString("pt-BR", {
-                            day: "2-digit",
-                            month: "short",
-                            year: "numeric",
+                            day: "2-digit", month: "short", year: "numeric",
                           })}
                         </p>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-2 shrink-0">
-                      <Button
-                        variant={isAdmin ? "destructive" : "outline"}
-                        size="sm"
-                        onClick={() => toggleAdmin.mutate(user.id)}
-                        disabled={toggleAdmin.isPending}
-                      >
-                        {isAdmin ? (
-                          <><ShieldOff className="h-3.5 w-3.5 mr-1" /> Remover Admin</>
-                        ) : (
-                          <><Shield className="h-3.5 w-3.5 mr-1" /> Tornar Admin</>
-                        )}
-                      </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-48">
+                          <DropdownMenuItem onClick={() => openEdit(user)}>
+                            <Pencil className="h-4 w-4 mr-2" /> Editar
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => toggleAdmin.mutate(user.id)}>
+                            {isAdmin ? (
+                              <><ShieldOff className="h-4 w-4 mr-2" /> Remover Admin</>
+                            ) : (
+                              <><Shield className="h-4 w-4 mr-2" /> Tornar Admin</>
+                            )}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => resetPassword.mutate(user.id)}>
+                            <KeyRound className="h-4 w-4 mr-2" /> Recuperar Senha
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          {user.banned ? (
+                            <DropdownMenuItem onClick={() => unbanUser.mutate(user.id)}>
+                              <Unlock className="h-4 w-4 mr-2" /> Desbloquear
+                            </DropdownMenuItem>
+                          ) : (
+                            <DropdownMenuItem
+                              className="text-destructive focus:text-destructive"
+                              onClick={() => openBan(user)}
+                            >
+                              <Ban className="h-4 w-4 mr-2" /> Bloquear
+                            </DropdownMenuItem>
+                          )}
+                          <DropdownMenuItem
+                            className="text-destructive focus:text-destructive"
+                            onClick={() => openDelete(user)}
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" /> Excluir
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </div>
                 );
@@ -225,6 +331,75 @@ const AdminUsers = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Edit User Dialog */}
+      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-display uppercase">Editar Usuário</DialogTitle>
+            <DialogDescription>Altere as informações do usuário</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 pt-2">
+            <div className="space-y-1.5">
+              <Label>Nome</Label>
+              <Input value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="Nome" />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Email</Label>
+              <Input type="email" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} placeholder="email@exemplo.com" />
+            </div>
+            <Button
+              className="w-full"
+              onClick={() => updateUser.mutate()}
+              disabled={updateUser.isPending || !editName}
+            >
+              {updateUser.isPending ? "Salvando..." : "Salvar"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Excluir usuário?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta ação é irreversível. O usuário <strong>{selectedUser?.display_name}</strong> ({selectedUser?.email}) será permanentemente removido.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => selectedUser && deleteUser.mutate(selectedUser.id)}
+            >
+              {deleteUser.isPending ? "Excluindo..." : "Excluir"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Ban Confirmation */}
+      <AlertDialog open={banDialogOpen} onOpenChange={setBanDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Bloquear usuário?</AlertDialogTitle>
+            <AlertDialogDescription>
+              O usuário <strong>{selectedUser?.display_name}</strong> não poderá mais acessar a plataforma até ser desbloqueado.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => selectedUser && banUser.mutate(selectedUser.id)}
+            >
+              {banUser.isPending ? "Bloqueando..." : "Bloquear"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </AdminLayout>
   );
 };
