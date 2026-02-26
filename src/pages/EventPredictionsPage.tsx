@@ -212,7 +212,7 @@ const EventPredictionsPage = () => {
               const videoId = getYouTubeId((event as any).preview_video_url || "");
               if (!videoId) return null;
               return (
-                <div className="rounded-lg overflow-hidden border border-border">
+                <div className="rounded-lg overflow-hidden border border-border max-w-md">
                   <AspectRatio ratio={16 / 9}>
                     <iframe
                       src={`https://www.youtube.com/embed/${videoId}`}
