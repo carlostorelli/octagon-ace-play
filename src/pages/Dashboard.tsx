@@ -217,7 +217,7 @@ const Dashboard = () => {
             </p>
           </div>
           {user ? (
-            <Button variant="ghost" size="sm" onClick={signOut} className="text-muted-foreground">
+            <Button variant="ghost" size="sm" onClick={async () => { await signOut(); navigate("/"); }} className="text-muted-foreground">
               <LogOut className="h-4 w-4 mr-2" /> Sair
             </Button>
           ) : (
