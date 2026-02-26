@@ -62,25 +62,18 @@ const AuthPage = () => {
           return;
         }
 
-        const { data, error } = await supabase.auth.signUp({
+        const { error } = await supabase.auth.signUp({
           email,
           password,
           options: {
             emailRedirectTo: window.location.origin,
-            data: { display_name: displayName.trim() },
+            data: {
+              display_name: displayName.trim(),
+              instagram: instagram.trim(),
+            },
           },
         });
         if (error) throw error;
-
-        // Save instagram to profile after signup
-        if (data.user && instagram.trim()) {
-          setTimeout(async () => {
-            await supabase
-              .from("profiles")
-              .update({ instagram: instagram.trim() })
-              .eq("user_id", data.user!.id);
-          }, 1500);
-        }
 
         toast({
           title: "Conta criada!",
