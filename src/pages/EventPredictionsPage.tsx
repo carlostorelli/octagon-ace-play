@@ -200,41 +200,38 @@ const EventPredictionsPage = () => {
           <div className="glass-card rounded-xl p-5 space-y-5">
             <div className="flex items-center gap-2">
               <FileText className="h-4 w-4 text-primary" />
-              <span className="font-display text-sm font-bold uppercase tracking-wider text-primary">Previsões do OSS</span>
+              <span className="font-display text-sm font-bold uppercase tracking-wider text-primary">Análise feita pela IA do canal OSS</span>
             </div>
             {event.preview_notes && (
               <p className="text-sm text-muted-foreground whitespace-pre-line leading-relaxed">{event.preview_notes}</p>
             )}
-            {event.preview_notes && (event as any).preview_video_url && (
-              <div className="h-px bg-border" />
+            {event.preview_pdf_url && (
+              <a href={event.preview_pdf_url} target="_blank" rel="noopener noreferrer">
+                <Button variant="outline" size="sm" className="gap-2">
+                  <Download className="h-4 w-4" /> Abrir Análise Completa (PDF)
+                </Button>
+              </a>
             )}
             {(() => {
               const videoId = getYouTubeId((event as any).preview_video_url || "");
               if (!videoId) return null;
               return (
-                <div className="rounded-lg overflow-hidden border border-border max-w-md">
-                  <AspectRatio ratio={16 / 9}>
-                    <iframe
-                      src={`https://www.youtube.com/embed/${videoId}`}
-                      title={`Análise ${event.name}`}
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                      className="w-full h-full"
-                    />
-                  </AspectRatio>
+                <div className="space-y-2">
+                  <span className="font-display text-sm font-bold uppercase tracking-wider text-accent">Análise do Zulu</span>
+                  <div className="rounded-lg overflow-hidden border border-border max-w-md">
+                    <AspectRatio ratio={16 / 9}>
+                      <iframe
+                        src={`https://www.youtube.com/embed/${videoId}`}
+                        title={`Análise ${event.name}`}
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                        className="w-full h-full"
+                      />
+                    </AspectRatio>
+                  </div>
                 </div>
               );
             })()}
-            {event.preview_pdf_url && (
-              <>
-                {((event as any).preview_video_url || event.preview_notes) && <div className="h-px bg-border" />}
-                <a href={event.preview_pdf_url} target="_blank" rel="noopener noreferrer">
-                  <Button variant="outline" size="sm" className="gap-2">
-                    <Download className="h-4 w-4" /> Abrir Análise Completa (PDF)
-                  </Button>
-                </a>
-              </>
-            )}
           </div>
         )}
 
