@@ -18,15 +18,20 @@ serve(async (req) => {
     const anonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
 
     // Verify caller is admin
-    const authHeader = req.headers.get("Authorization")!;
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) throw new Error("Not authenticated");
+
     const callerClient = createClient(supabaseUrl, anonKey, {
       global: { headers: { Authorization: authHeader } },
     });
-    const { data: { user: caller } } = await callerClient.auth.getUser();
-    if (!caller) throw new Error("Not authenticated");
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await callerClient.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) throw new Error("Not authenticated");
+    const callerId = claimsData.claims.sub as string;
 
     const { data: isAdmin } = await callerClient.rpc("has_role", {
-      _user_id: caller.id,
+      _user_id: callerId,
       _role: "admin",
     });
     if (!isAdmin) throw new Error("Not authorized");
@@ -106,7 +111,7 @@ serve(async (req) => {
     if (req.method === "POST" && action === "delete-user") {
       const { user_id } = await req.json();
       if (!user_id) throw new Error("user_id required");
-      if (user_id === caller.id) throw new Error("Você não pode excluir a si mesmo");
+      if (user_id === callerId) throw new Error("Você não pode excluir a si mesmo");
 
       const { error } = await adminClient.auth.admin.deleteUser(user_id);
       if (error) throw error;
@@ -120,7 +125,7 @@ serve(async (req) => {
     if (req.method === "POST" && action === "ban-user") {
       const { user_id } = await req.json();
       if (!user_id) throw new Error("user_id required");
-      if (user_id === caller.id) throw new Error("Você não pode bloquear a si mesmo");
+      if (user_id === callerId) throw new Error("Você não pode bloquear a si mesmo");
 
       const { error } = await adminClient.auth.admin.updateUserById(user_id, {
         ban_duration: "876000h", // ~100 years
