@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Check, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { toast } from "@/hooks/use-toast";
 import {
   Dialog,
   DialogContent,
@@ -21,9 +22,10 @@ interface FightCardProps {
   onPredict: (pred: { winner_fighter_id: string; method: string | null; round: number | null }) => void;
   index: number;
   disabled?: boolean;
+  lockMessage?: string | null;
 }
 
-const FightCard = ({ fight, prediction, onPredict, index, disabled = false }: FightCardProps) => {
+const FightCard = ({ fight, prediction, onPredict, index, disabled = false, lockMessage }: FightCardProps) => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [tempMethod, setTempMethod] = useState<string | null>(null);
   const [tempRound, setTempRound] = useState<number | null>(null);
@@ -40,7 +42,12 @@ const FightCard = ({ fight, prediction, onPredict, index, disabled = false }: Fi
   const maxRounds = fight.fight_type === "3_rounds" ? 3 : 5;
 
   const selectWinner = (fighterId: string) => {
-    if (disabled) return;
+    if (disabled) {
+      if (lockMessage) {
+        toast({ title: "🔒 Palpites bloqueados", description: lockMessage, variant: "destructive" });
+      }
+      return;
+    }
     setTempWinner(fighterId);
     setTempMethod(prediction?.method ?? null);
     setTempRound(prediction?.round ?? null);
