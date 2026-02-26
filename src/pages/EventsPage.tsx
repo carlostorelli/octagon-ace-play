@@ -92,7 +92,7 @@ const EventsPage = () => {
                 </div>
 
                 {(() => {
-                  const videoId = getYouTubeId(event.preview_video_url || "");
+                  const videoId = getYouTubeId((event as any).preview_video_url || "");
                   if (!videoId) return null;
                   return (
                     <div className="mt-4 rounded-lg overflow-hidden border border-border">
