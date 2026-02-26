@@ -187,21 +187,24 @@ const AdminSettings = () => {
         <h1 className="font-display text-2xl font-bold uppercase tracking-tight mb-6">Configurações</h1>
 
         <Tabs defaultValue="whatsapp" className="space-y-6">
-          <TabsList className="bg-secondary">
-            <TabsTrigger value="whatsapp" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              <MessageCircle className="h-4 w-4 mr-1.5" />
-              WhatsApp
+          <TabsList className="bg-secondary flex-wrap h-auto gap-1 p-1">
+            <TabsTrigger value="whatsapp" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-xs sm:text-sm">
+              <MessageCircle className="h-4 w-4 mr-1" />
+              <span className="hidden sm:inline">WhatsApp</span>
+              <span className="sm:hidden">Zap</span>
             </TabsTrigger>
-            <TabsTrigger value="api" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              <Key className="h-4 w-4 mr-1.5" />
-              API Keys
+            <TabsTrigger value="api" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-xs sm:text-sm">
+              <Key className="h-4 w-4 mr-1" />
+              <span className="hidden sm:inline">API Keys</span>
+              <span className="sm:hidden">API</span>
             </TabsTrigger>
-            <TabsTrigger value="templates" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              <Mail className="h-4 w-4 mr-1.5" />
-              Templates de Email
+            <TabsTrigger value="templates" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-xs sm:text-sm">
+              <Mail className="h-4 w-4 mr-1" />
+              <span className="hidden sm:inline">Templates de Email</span>
+              <span className="sm:hidden">Email</span>
             </TabsTrigger>
-            <TabsTrigger value="site" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              <Globe className="h-4 w-4 mr-1.5" />
+            <TabsTrigger value="site" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-xs sm:text-sm">
+              <Globe className="h-4 w-4 mr-1" />
               Site
             </TabsTrigger>
           </TabsList>

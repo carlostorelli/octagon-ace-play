@@ -321,15 +321,15 @@ const Dashboard = () => {
                     <span className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-3 block">Lutas Principais</span>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       {mainFights.map((fight: any) => (
-                        <div key={fight.id} className="rounded-lg bg-secondary/50 border border-border/50 p-3 flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm">{fight.fighter_a?.country}</span>
-                            <span className="font-display text-sm font-bold uppercase">{fight.fighter_a?.name}</span>
+                        <div key={fight.id} className="rounded-lg bg-secondary/50 border border-border/50 p-3 flex items-center justify-between gap-1 overflow-hidden">
+                          <div className="flex items-center gap-1 sm:gap-2 min-w-0 flex-1">
+                            <span className="text-xs sm:text-sm shrink-0">{fight.fighter_a?.country}</span>
+                            <span className="font-display text-xs sm:text-sm font-bold uppercase truncate">{fight.fighter_a?.name}</span>
                           </div>
-                          <span className="font-mono text-xs text-muted-foreground">vs</span>
-                          <div className="flex items-center gap-2">
-                            <span className="font-display text-sm font-bold uppercase">{fight.fighter_b?.name}</span>
-                            <span className="text-sm">{fight.fighter_b?.country}</span>
+                          <span className="font-mono text-xs text-muted-foreground shrink-0 px-1">vs</span>
+                          <div className="flex items-center gap-1 sm:gap-2 min-w-0 flex-1 justify-end">
+                            <span className="font-display text-xs sm:text-sm font-bold uppercase truncate text-right">{fight.fighter_b?.name}</span>
+                            <span className="text-xs sm:text-sm shrink-0">{fight.fighter_b?.country}</span>
                           </div>
                         </div>
                       ))}

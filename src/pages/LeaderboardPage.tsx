@@ -43,7 +43,7 @@ const LeaderboardPage = () => {
           <>
             {/* Top 3 podium */}
             {displayData.length >= 3 && (
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-3 gap-2 sm:gap-4">
                 {[1, 0, 2].map((orderIdx, i) => {
                   const e = displayData[orderIdx];
                   if (!e) return null;
@@ -54,23 +54,23 @@ const LeaderboardPage = () => {
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: i * 0.15 }}
-                      className={`glass-card rounded-xl p-6 text-center ${isFirst ? "border-accent/30 -mt-4" : ""}`}
+                      className={`glass-card rounded-xl p-3 sm:p-6 text-center ${isFirst ? "border-accent/30 -mt-4" : ""}`}
                     >
-                      <div className={`mx-auto mb-3 flex h-16 w-16 items-center justify-center rounded-full overflow-hidden ${
+                      <div className={`mx-auto mb-2 sm:mb-3 flex h-12 w-12 sm:h-16 sm:w-16 items-center justify-center rounded-full overflow-hidden ${
                         isFirst ? "bg-accent text-accent-foreground" : "bg-secondary text-muted-foreground"
                       }`}>
                         {e.avatarUrl ? (
                           <img src={e.avatarUrl} alt={e.user} className="h-full w-full object-cover" />
                         ) : isFirst ? <Trophy className="h-7 w-7" /> : <Medal className="h-6 w-6" />}
                       </div>
-                      <div className="font-display text-2xl font-bold">{e.rank}º</div>
-                      <div className="font-semibold mt-1">{e.user}</div>
+                      <div className="font-display text-xl sm:text-2xl font-bold">{e.rank}º</div>
+                      <div className="font-semibold mt-1 text-xs sm:text-sm truncate max-w-full">{e.user}</div>
                       {e.instagram && (
                         <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground mt-0.5">
                           <Instagram className="h-3 w-3" /> {e.instagram}
                         </div>
                       )}
-                      <div className="text-accent font-display text-lg font-bold mt-2">{e.points.toLocaleString()} pts</div>
+                      <div className="text-accent font-display text-sm sm:text-lg font-bold mt-2">{e.points.toLocaleString()} pts</div>
                       <div className="text-xs text-muted-foreground mt-1">{e.wins} vitórias</div>
                     </motion.div>
                   );
