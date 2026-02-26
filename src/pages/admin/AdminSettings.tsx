@@ -38,14 +38,36 @@ const AdminSettings = () => {
 <p>Se não foi você, ignore este email.</p>`
   );
 
+  // Load saved values from localStorage on mount
+  useEffect(() => {
+    const savedKey = localStorage.getItem("resend_api_key");
+    if (savedKey) { setResendApiKey(savedKey); setKeySaved(true); }
+    const savedConfig = localStorage.getItem("email_config");
+    if (savedConfig) {
+      try {
+        const cfg = JSON.parse(savedConfig);
+        if (cfg.fromEmail) setFromEmail(cfg.fromEmail);
+        if (cfg.fromName) setFromName(cfg.fromName);
+        if (cfg.welcomeSubject) setWelcomeSubject(cfg.welcomeSubject);
+        if (cfg.welcomeBody) setWelcomeBody(cfg.welcomeBody);
+        if (cfg.resetSubject) setResetSubject(cfg.resetSubject);
+        if (cfg.resetBody) setResetBody(cfg.resetBody);
+      } catch {}
+    }
+  }, []);
+
   const handleSaveKey = () => {
     if (!resendApiKey.trim()) {
       toast({ title: "Erro", description: "Insira a API Key do Resend.", variant: "destructive" });
       return;
     }
     localStorage.setItem("resend_api_key", resendApiKey);
+    // Also save sender info together
+    const savedConfig = localStorage.getItem("email_config");
+    const cfg = savedConfig ? JSON.parse(savedConfig) : {};
+    localStorage.setItem("email_config", JSON.stringify({ ...cfg, fromEmail, fromName }));
     setKeySaved(true);
-    toast({ title: "API Key salva", description: "A chave do Resend foi armazenada com sucesso." });
+    toast({ title: "Configurações salvas", description: "API Key e dados do remetente foram salvos com sucesso." });
   };
 
   const handleSaveTemplates = () => {
