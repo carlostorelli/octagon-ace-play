@@ -1,14 +1,21 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Swords, Check, Loader2, FileText, Download, Trophy, Lock, Clock, Pencil, ArrowLeft } from "lucide-react";
+import { Swords, Check, Loader2, FileText, Download, Trophy, Lock, Clock, Pencil, ArrowLeft, Play } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Button } from "@/components/ui/button";
 import AppLayout from "@/components/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 import FightCard from "@/components/predictions/FightCard";
+
+function getYouTubeId(url: string): string | null {
+  if (!url) return null;
+  const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([a-zA-Z0-9_-]{11})/);
+  return match ? match[1] : null;
+}
 
 const EventPredictionsPage = () => {
   const { eventId } = useParams<{ eventId: string }>();
@@ -189,7 +196,7 @@ const EventPredictionsPage = () => {
         )}
 
         {/* OSS Preview */}
-        {event && (event.preview_notes || event.preview_pdf_url) && (
+        {event && (event.preview_notes || event.preview_pdf_url || (event as any).preview_video_url) && (
           <div className="glass-card rounded-xl p-5 space-y-3">
             <div className="flex items-center gap-2">
               <FileText className="h-4 w-4 text-primary" />
@@ -198,6 +205,23 @@ const EventPredictionsPage = () => {
             {event.preview_notes && (
               <p className="text-sm text-muted-foreground whitespace-pre-line">{event.preview_notes}</p>
             )}
+            {(() => {
+              const videoId = getYouTubeId((event as any).preview_video_url || "");
+              if (!videoId) return null;
+              return (
+                <div className="rounded-lg overflow-hidden border border-border">
+                  <AspectRatio ratio={16 / 9}>
+                    <iframe
+                      src={`https://www.youtube.com/embed/${videoId}`}
+                      title={`Análise ${event.name}`}
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                      className="w-full h-full"
+                    />
+                  </AspectRatio>
+                </div>
+              );
+            })()}
             {event.preview_pdf_url && (
               <a href={event.preview_pdf_url} target="_blank" rel="noopener noreferrer">
                 <Button variant="outline" size="sm" className="gap-2">

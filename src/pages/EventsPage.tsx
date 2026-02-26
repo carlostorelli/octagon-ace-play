@@ -1,18 +1,11 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
-import { Calendar, MapPin, Swords, CheckCircle, Clock, Loader2, Play } from "lucide-react";
+import { Calendar, MapPin, Swords, CheckCircle, Clock, Loader2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import AppLayout from "@/components/AppLayout";
 import { OSSInput } from "@/components/ui/oss-input";
 import { supabase } from "@/integrations/supabase/client";
 import { useDebounce } from "@/lib/useDebounce";
-import { AspectRatio } from "@/components/ui/aspect-ratio";
-
-function getYouTubeId(url: string): string | null {
-  if (!url) return null;
-  const match = url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([a-zA-Z0-9_-]{11})/);
-  return match ? match[1] : null;
-}
 
 const EventsPage = () => {
   const [search, setSearch] = useState("");
@@ -90,24 +83,6 @@ const EventsPage = () => {
                   <span className="flex items-center gap-1.5"><MapPin className="h-4 w-4" /> {event.location}</span>
                   <span className="flex items-center gap-1.5"><Swords className="h-4 w-4" /> {event.fights_count} lutas</span>
                 </div>
-
-                {(() => {
-                  const videoId = getYouTubeId((event as any).preview_video_url || "");
-                  if (!videoId) return null;
-                  return (
-                    <div className="mt-4 rounded-lg overflow-hidden border border-border">
-                      <AspectRatio ratio={16 / 9}>
-                        <iframe
-                          src={`https://www.youtube.com/embed/${videoId}`}
-                          title={`Análise ${event.name}`}
-                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                          allowFullScreen
-                          className="w-full h-full"
-                        />
-                      </AspectRatio>
-                    </div>
-                  );
-                })()}
               </motion.div>
             ))}
 
