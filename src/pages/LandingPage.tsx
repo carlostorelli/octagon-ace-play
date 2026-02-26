@@ -49,12 +49,12 @@ const LandingPage = () => {
             </span>
           </div>
           <div className="flex items-center gap-3">
-            <Link to="/auth">
+            <Link to="/auth?mode=login">
               <Button variant="ghost" size="sm" className="text-muted-foreground hover:text-foreground">
                 Entrar
               </Button>
             </Link>
-            <Link to="/auth">
+            <Link to="/auth?mode=signup">
               <Button size="sm" className="bg-primary hover:bg-primary/90 text-primary-foreground font-semibold">
                 Começar Grátis
               </Button>
@@ -90,7 +90,7 @@ const LandingPage = () => {
               Escolha o vencedor, método e round de cada luta — acumule pontos e concorra a brindes no sorteio! Sem apostas, só diversão.
             </p>
             <div className="flex flex-wrap gap-4">
-              <Link to="/auth">
+              <Link to="/auth?mode=signup">
                 <Button size="lg" className="bg-primary hover:bg-primary/90 text-primary-foreground font-display uppercase tracking-wider text-base px-8 glow">
                   Começar Agora <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
