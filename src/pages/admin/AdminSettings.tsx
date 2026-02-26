@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Key, Mail, Eye, EyeOff, Save, CheckCircle, MessageCircle, Loader2 } from "lucide-react";
+import { Key, Mail, Eye, EyeOff, Save, CheckCircle, MessageCircle, Loader2, Globe } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import AdminLayout from "@/components/AdminLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -56,13 +56,18 @@ const AdminSettings = () => {
   // WhatsApp state
   const [whatsappLink, setWhatsappLink] = useState("");
 
+  // Site meta state
+  const [siteTitle, setSiteTitle] = useState("");
+  const [siteDescription, setSiteDescription] = useState("");
+  const [siteFaviconUrl, setSiteFaviconUrl] = useState("");
+
   const { data: settings } = useQuery({
     queryKey: ["admin-site-settings"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("site_settings")
         .select("*")
-        .in("key", ["whatsapp_group_link"]);
+        .in("key", ["whatsapp_group_link", "site_title", "site_description", "site_favicon_url"]);
       if (error) throw error;
       return data;
     },
@@ -71,6 +76,9 @@ const AdminSettings = () => {
   useEffect(() => {
     if (settings) {
       setWhatsappLink(settings.find((s) => s.key === "whatsapp_group_link")?.value || "");
+      setSiteTitle(settings.find((s) => s.key === "site_title")?.value || "");
+      setSiteDescription(settings.find((s) => s.key === "site_description")?.value || "");
+      setSiteFaviconUrl(settings.find((s) => s.key === "site_favicon_url")?.value || "");
     }
   }, [settings]);
 
@@ -105,6 +113,52 @@ const AdminSettings = () => {
     },
   });
 
+  const saveSiteMeta = useMutation({
+    mutationFn: async () => {
+      const entries = [
+        { key: "site_title", value: siteTitle },
+        { key: "site_description", value: siteDescription },
+        { key: "site_favicon_url", value: siteFaviconUrl },
+      ];
+      for (const entry of entries) {
+        const { data: existing } = await supabase
+          .from("site_settings")
+          .select("id")
+          .eq("key", entry.key)
+          .maybeSingle();
+        if (existing) {
+          const { error } = await supabase.from("site_settings").update({ value: entry.value }).eq("key", entry.key);
+          if (error) throw error;
+        } else {
+          const { error } = await supabase.from("site_settings").insert(entry);
+          if (error) throw error;
+        }
+      }
+      // Apply changes to the current page
+      if (siteTitle) document.title = siteTitle;
+      if (siteDescription) {
+        const meta = document.querySelector('meta[name="description"]');
+        if (meta) meta.setAttribute("content", siteDescription);
+      }
+      if (siteFaviconUrl) {
+        let link = document.querySelector("link[rel='icon']") as HTMLLinkElement | null;
+        if (!link) {
+          link = document.createElement("link");
+          link.rel = "icon";
+          document.head.appendChild(link);
+        }
+        link.href = siteFaviconUrl;
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-site-settings"] });
+      toast({ title: "Configurações do site salvas!" });
+    },
+    onError: (err: any) => {
+      toast({ title: "Erro", description: err.message, variant: "destructive" });
+    },
+  });
+
   return (
     <AdminLayout>
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
@@ -123,6 +177,10 @@ const AdminSettings = () => {
             <TabsTrigger value="templates" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               <Mail className="h-4 w-4 mr-1.5" />
               Templates de Email
+            </TabsTrigger>
+            <TabsTrigger value="site" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <Globe className="h-4 w-4 mr-1.5" />
+              Site
             </TabsTrigger>
           </TabsList>
 
@@ -290,6 +348,65 @@ const AdminSettings = () => {
                 Salvar Templates
               </Button>
             </div>
+          </TabsContent>
+
+          {/* Site Tab */}
+          <TabsContent value="site">
+            <Card className="glass-card border-border/30">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <Globe className="h-5 w-5 text-primary" />
+                  Ícone e Descrição da Aba
+                </CardTitle>
+                <CardDescription>
+                  Configure o título, a descrição e o ícone (favicon) que aparecem na aba do navegador.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-1.5">
+                  <Label>Título da aba</Label>
+                  <Input
+                    placeholder="OSS Fantasy - Palpites de MMA"
+                    value={siteTitle}
+                    onChange={(e) => setSiteTitle(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">Aparece no título da aba do navegador.</p>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Descrição (meta description)</Label>
+                  <Textarea
+                    placeholder="Faça seus palpites de MMA e domine o octógono!"
+                    value={siteDescription}
+                    onChange={(e) => setSiteDescription(e.target.value)}
+                    rows={3}
+                  />
+                  <p className="text-xs text-muted-foreground">Aparece nos resultados de busca do Google.</p>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>URL do Favicon</Label>
+                  <Input
+                    placeholder="https://exemplo.com/favicon.png"
+                    value={siteFaviconUrl}
+                    onChange={(e) => setSiteFaviconUrl(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">URL de uma imagem .png ou .ico para o ícone da aba.</p>
+                  {siteFaviconUrl && (
+                    <div className="flex items-center gap-2 mt-2">
+                      <img src={siteFaviconUrl} alt="Preview favicon" className="h-8 w-8 rounded border border-border object-contain" />
+                      <span className="text-xs text-muted-foreground">Preview</span>
+                    </div>
+                  )}
+                </div>
+                <Button
+                  onClick={() => saveSiteMeta.mutate()}
+                  disabled={saveSiteMeta.isPending}
+                  className="gap-1.5"
+                >
+                  {saveSiteMeta.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                  Salvar
+                </Button>
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </motion.div>
