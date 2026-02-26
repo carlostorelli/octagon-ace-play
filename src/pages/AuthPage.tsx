@@ -58,11 +58,6 @@ const AuthPage = () => {
         className="w-full max-w-md"
       >
         <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary">
-              <GloveIcon className="h-7 w-7 text-primary-foreground" />
-            </div>
-          </div>
           <h1 className="font-display text-3xl font-bold uppercase tracking-tight">
             OSS<span className="text-primary"> Fantasy</span>
           </h1>
