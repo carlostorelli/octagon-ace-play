@@ -29,6 +29,7 @@ const AdminFights = lazy(() => import("./pages/admin/AdminFights"));
 const AdminResults = lazy(() => import("./pages/admin/AdminResults"));
 const AdminRegulamento = lazy(() => import("./pages/admin/AdminRegulamento"));
 const AdminNotifications = lazy(() => import("./pages/admin/AdminNotifications"));
+const AdminPredictions = lazy(() => import("./pages/admin/AdminPredictions"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -71,6 +72,7 @@ const App = () => (
               <Route path="/admin/events/:eventId/card" element={<AdminFights />} />
               <Route path="/admin/events/:eventId/fights" element={<AdminFights />} />
               <Route path="/admin/events/:eventId/results" element={<AdminResults />} />
+              <Route path="/admin/predictions" element={<AdminPredictions />} />
               <Route path="/admin/scoring" element={<AdminScoring />} />
               <Route path="/admin/regulamento" element={<AdminRegulamento />} />
               <Route path="/admin/notifications" element={<AdminNotifications />} />
