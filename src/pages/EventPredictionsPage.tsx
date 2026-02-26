@@ -326,7 +326,7 @@ const EventPredictionsPage = () => {
                     </div>
                     {mainFights.map((fight: any, i: number) => (
                       <FightCard key={fight.id} fight={fight} prediction={predictions[fight.id] ?? null}
-                        onPredict={(pred) => setPrediction(fight.id, pred)} index={i} disabled={!!isLocked} />
+                        onPredict={(pred) => setPrediction(fight.id, pred)} index={i} disabled={!!isLocked} lockMessage={lockMessage} />
                     ))}
                   </>
                 )}
@@ -339,7 +339,7 @@ const EventPredictionsPage = () => {
                     </div>
                     {prelimFights.map((fight: any, i: number) => (
                       <FightCard key={fight.id} fight={fight} prediction={predictions[fight.id] ?? null}
-                        onPredict={(pred) => setPrediction(fight.id, pred)} index={mainFights.length + i} disabled={!!isLocked} />
+                        onPredict={(pred) => setPrediction(fight.id, pred)} index={mainFights.length + i} disabled={!!isLocked} lockMessage={lockMessage} />
                     ))}
                   </>
                 )}
