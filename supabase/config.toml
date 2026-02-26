@@ -1,1 +1,10 @@
 project_id = "ltuzokdtubjkoebkjnmh"
+
+[functions.admin-users]
+verify_jwt = false
+
+[functions.calculate-scores]
+verify_jwt = false
+
+[functions.sync-event-fighters]
+verify_jwt = false
