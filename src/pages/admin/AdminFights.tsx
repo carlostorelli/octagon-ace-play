@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Plus, Trash2, Loader2, GripVertical, ClipboardPaste, Pencil } from "lucide-react";
 import { DragDropContext, Droppable, Draggable, DropResult } from "@hello-pangea/dnd";
@@ -328,17 +328,22 @@ const AdminFights = () => {
                 value={bulkText}
                 onChange={(e) => setBulkText(e.target.value)}
               />
-              <div className="flex items-center gap-3">
-                <Button onClick={() => bulkMutation.mutate()} disabled={bulkMutation.isPending || !bulkText.trim()}>
-                  {bulkMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ClipboardPaste className="h-4 w-4" />}
-                  Importar {parseBulkFights(bulkText).length > 0 ? `(${parseBulkFights(bulkText).length} lutas)` : ""}
-                </Button>
-                {parseBulkFights(bulkText).length > 0 && (
-                  <span className="text-xs text-muted-foreground">
-                    {parseBulkFights(bulkText).filter(f => f.cardType === "main").length} principal · {parseBulkFights(bulkText).filter(f => f.cardType === "prelim").length} preliminar
-                  </span>
-                )}
-              </div>
+              {(() => {
+                const parsed = parseBulkFights(bulkText);
+                return (
+                  <div className="flex items-center gap-3">
+                    <Button onClick={() => bulkMutation.mutate()} disabled={bulkMutation.isPending || !bulkText.trim()}>
+                      {bulkMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <ClipboardPaste className="h-4 w-4" />}
+                      Importar {parsed.length > 0 ? `(${parsed.length} lutas)` : ""}
+                    </Button>
+                    {parsed.length > 0 && (
+                      <span className="text-xs text-muted-foreground">
+                        {parsed.filter(f => f.cardType === "main").length} principal · {parsed.filter(f => f.cardType === "prelim").length} preliminar
+                      </span>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
           )}
         </div>

@@ -7,6 +7,7 @@ import AppLayout from "@/components/AppLayout";
 import { OSSInput } from "@/components/ui/oss-input";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { useDebounce } from "@/lib/useDebounce";
 
 const PredictionsPage = () => {
   const { user } = useAuth();
@@ -43,11 +44,12 @@ const PredictionsPage = () => {
     },
   });
 
+  const debouncedSearch = useDebounce(search, 250);
   const filtered = events.filter(
     (e) =>
-      e.name.toLowerCase().includes(search.toLowerCase()) ||
-      e.main_event.toLowerCase().includes(search.toLowerCase()) ||
-      e.location.toLowerCase().includes(search.toLowerCase())
+      e.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+      e.main_event.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+      e.location.toLowerCase().includes(debouncedSearch.toLowerCase())
   );
 
   return (
