@@ -207,7 +207,7 @@ const EventPredictionsPage = () => {
             )}
             {event.preview_pdf_url && (
               <a href={event.preview_pdf_url} target="_blank" rel="noopener noreferrer">
-                <Button variant="outline" size="sm" className="gap-2">
+                <Button variant="outline" size="sm" className="gap-2 mt-2">
                   <Download className="h-4 w-4" /> Abrir Análise Completa (PDF)
                 </Button>
               </a>
