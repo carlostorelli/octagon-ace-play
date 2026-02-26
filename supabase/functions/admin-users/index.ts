@@ -152,7 +152,7 @@ serve(async (req) => {
       });
     }
 
-    // RESET PASSWORD (generates a recovery link)
+    // RESET PASSWORD (sends recovery email)
     if (req.method === "POST" && action === "reset-password") {
       const { user_id } = await req.json();
       if (!user_id) throw new Error("user_id required");
@@ -161,10 +161,9 @@ serve(async (req) => {
       const { data: { user: targetUser }, error: getUserError } = await adminClient.auth.admin.getUserById(user_id);
       if (getUserError || !targetUser?.email) throw new Error("Usuário não encontrado");
 
-      // Generate recovery link
-      const { data, error } = await adminClient.auth.admin.generateLink({
-        type: "recovery",
-        email: targetUser.email,
+      // Send recovery email using the auth API (this actually sends the email)
+      const { error } = await adminClient.auth.resetPasswordForEmail(targetUser.email, {
+        redirectTo: `${req.headers.get("origin") || supabaseUrl.replace(".supabase.co", ".lovable.app")}/reset-password`,
       });
       if (error) throw error;
 
