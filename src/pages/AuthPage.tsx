@@ -1,19 +1,24 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { OSSInput } from "@/components/ui/oss-input";
-import { GloveIcon } from "@/components/ui/oss-input";
 import { toast } from "@/hooks/use-toast";
 
 const AuthPage = () => {
-  const [isLogin, setIsLogin] = useState(true);
+  const [searchParams] = useSearchParams();
+  const [isLogin, setIsLogin] = useState(searchParams.get("mode") !== "signup");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [displayName, setDisplayName] = useState("");
+  const [instagram, setInstagram] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    setIsLogin(searchParams.get("mode") !== "signup");
+  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,15 +30,33 @@ const AuthPage = () => {
         if (error) throw error;
         navigate("/dashboard");
       } else {
-        const { error } = await supabase.auth.signUp({
+        if (!displayName.trim()) {
+          toast({ title: "Erro", description: "Preencha seu nome.", variant: "destructive" });
+          setLoading(false);
+          return;
+        }
+
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
             emailRedirectTo: window.location.origin,
-            data: { display_name: displayName || email },
+            data: { display_name: displayName.trim() },
           },
         });
         if (error) throw error;
+
+        // Save instagram to profile after signup
+        if (data.user && instagram.trim()) {
+          // Small delay to let the trigger create the profile first
+          setTimeout(async () => {
+            await supabase
+              .from("profiles")
+              .update({ instagram: instagram.trim() })
+              .eq("user_id", data.user!.id);
+          }, 1500);
+        }
+
         toast({
           title: "Conta criada!",
           description: "Verifique seu email para confirmar o cadastro.",
@@ -68,13 +91,21 @@ const AuthPage = () => {
 
         <form onSubmit={handleSubmit} className="glass-card rounded-xl p-6 space-y-4">
           {!isLogin && (
-            <OSSInput
-              label="Nome"
-              placeholder="Seu nome no ranking"
-              showBrand
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-            />
+            <>
+              <OSSInput
+                label="Nome"
+                placeholder="Seu nome no ranking"
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                required
+              />
+              <OSSInput
+                label="Instagram"
+                placeholder="@seuusuario"
+                value={instagram}
+                onChange={(e) => setInstagram(e.target.value)}
+              />
+            </>
           )}
           <OSSInput
             label="Email"
