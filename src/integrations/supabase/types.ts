@@ -165,6 +165,7 @@ export type Database = {
           id: string
           name: string
           nickname: string
+          photo_url: string | null
           record: string
           salary: number
           weight_class: string
@@ -175,6 +176,7 @@ export type Database = {
           id?: string
           name: string
           nickname?: string
+          photo_url?: string | null
           record?: string
           salary?: number
           weight_class?: string
@@ -185,6 +187,7 @@ export type Database = {
           id?: string
           name?: string
           nickname?: string
+          photo_url?: string | null
           record?: string
           salary?: number
           weight_class?: string
