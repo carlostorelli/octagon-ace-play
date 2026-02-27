@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Calendar, MapPin, Swords, Clock, CheckCircle, Loader2, Check } from "lucide-react";
+import { Calendar, MapPin, Swords, Clock, Loader2, Check, Lock } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import AppLayout from "@/components/AppLayout";
@@ -13,6 +13,12 @@ const PredictionsPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
+  const [now, setNow] = useState(() => new Date());
+
+  useEffect(() => {
+    const interval = setInterval(() => setNow(new Date()), 30_000);
+    return () => clearInterval(interval);
+  }, []);
 
   const { data: events = [], isLoading } = useQuery({
     queryKey: ["events-all"],
@@ -52,6 +58,33 @@ const PredictionsPage = () => {
       e.location.toLowerCase().includes(debouncedSearch.toLowerCase())
   );
 
+  const getPredictionStatus = (event: any) => {
+    if (event.status === "completed") {
+      return { label: "Finalizado", className: "bg-muted text-muted-foreground", icon: Check };
+    }
+    const openAt = event.predictions_open_at ? new Date(event.predictions_open_at) : null;
+    const closeAt = event.predictions_close_at ? new Date(event.predictions_close_at) : null;
+    const isBeforeOpen = openAt && now < openAt;
+    const isAfterClose = closeAt && now > closeAt;
+
+    if (isBeforeOpen) {
+      return {
+        label: `Abre ${openAt!.toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}`,
+        className: "bg-muted text-muted-foreground",
+        icon: Clock,
+      };
+    }
+    if (isAfterClose) {
+      return { label: "Palpites Encerrados", className: "bg-destructive/10 text-destructive", icon: Lock };
+    }
+    return {
+      label: "Palpites Abertos",
+      className: "bg-accent/10 text-accent",
+      icon: Clock,
+      pulse: true,
+    };
+  };
+
   return (
     <AppLayout>
       <div className="container py-8 space-y-8">
@@ -79,6 +112,8 @@ const PredictionsPage = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {filtered.map((event, i) => {
               const userPredCount = predCounts[event.id] || 0;
+              const status = getPredictionStatus(event);
+              const StatusIcon = status.icon;
               return (
                 <motion.div
                   key={event.id}
@@ -93,13 +128,10 @@ const PredictionsPage = () => {
                       <h3 className="font-display text-xl font-bold uppercase">{event.name}</h3>
                       <p className="text-sm text-muted-foreground mt-1">{event.main_event}</p>
                     </div>
-                    <div className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${
-                      event.status === "upcoming"
-                        ? "bg-accent/10 text-accent"
-                        : "bg-muted text-muted-foreground"
-                    }`}>
-                      {event.status === "upcoming" ? <Clock className="h-3 w-3" /> : <CheckCircle className="h-3 w-3" />}
-                      {event.status === "upcoming" ? "Em Breve" : "Finalizado"}
+                    <div className={`flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold ${status.className}`}>
+                      {(status as any).pulse && <div className="h-1.5 w-1.5 rounded-full bg-accent animate-pulse" />}
+                      {!(status as any).pulse && <StatusIcon className="h-3 w-3" />}
+                      {status.label}
                     </div>
                   </div>
 
