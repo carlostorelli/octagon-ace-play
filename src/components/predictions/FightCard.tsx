@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Check, X } from "lucide-react";
+import { Check, X, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import {
@@ -95,6 +95,13 @@ const FightCard = ({ fight, prediction, onPredict, index, disabled = false, lock
                   : "border-transparent hover:bg-secondary"
               } ${disabled ? "opacity-50" : ""}`}
             >
+              <div className="h-12 w-12 rounded-full bg-secondary flex items-center justify-center overflow-hidden shrink-0 mb-1">
+                {fighterA.photo_url ? (
+                  <img src={fighterA.photo_url} alt={fighterA.name} className="h-full w-full object-cover" />
+                ) : (
+                  <User className="h-5 w-5 text-muted-foreground" />
+                )}
+              </div>
               <span className="font-display font-bold uppercase text-sm text-center leading-tight">{fighterA.name}</span>
               <span className="text-xs text-muted-foreground">{fighterA.record}</span>
               {fight.odds_fighter_a != null && (
@@ -115,6 +122,13 @@ const FightCard = ({ fight, prediction, onPredict, index, disabled = false, lock
                   : "border-transparent hover:bg-secondary"
               } ${disabled ? "opacity-50" : ""}`}
             >
+              <div className="h-12 w-12 rounded-full bg-secondary flex items-center justify-center overflow-hidden shrink-0 mb-1">
+                {fighterB.photo_url ? (
+                  <img src={fighterB.photo_url} alt={fighterB.name} className="h-full w-full object-cover" />
+                ) : (
+                  <User className="h-5 w-5 text-muted-foreground" />
+                )}
+              </div>
               <span className="font-display font-bold uppercase text-sm text-center leading-tight">{fighterB.name}</span>
               <span className="text-xs text-muted-foreground">{fighterB.record}</span>
               {fight.odds_fighter_b != null && (
