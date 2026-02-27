@@ -10,6 +10,7 @@ import { OSSInput } from "@/components/ui/oss-input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import FighterPicker from "@/components/admin/FighterPicker";
 
 function parseBulkFights(text: string): { fighterA: string; oddsA: number | null; fighterB: string; oddsB: number | null; cardType: string }[] {
   const lines = text.trim().split("\n");
@@ -82,8 +83,8 @@ const AdminFights = () => {
   const { eventId } = useParams<{ eventId: string }>();
   const queryClient = useQueryClient();
 
-  const [fighterAName, setFighterAName] = useState("");
-  const [fighterBName, setFighterBName] = useState("");
+  const [fighterA, setFighterA] = useState<{ id: string; name: string } | null>(null);
+  const [fighterB, setFighterB] = useState<{ id: string; name: string } | null>(null);
   const [fightType, setFightType] = useState("3_rounds");
   const [cardType, setCardType] = useState("main");
   const [fightOrder, setFightOrder] = useState(1);
@@ -150,11 +151,11 @@ const AdminFights = () => {
 
   const addMutation = useMutation({
     mutationFn: async () => {
-      if (!fighterAName.trim() || !fighterBName.trim()) throw new Error("Digite o nome dos dois lutadores");
-      const [idA, idB] = await Promise.all([
-        findOrCreateFighter(fighterAName),
-        findOrCreateFighter(fighterBName),
-      ]);
+      if (!fighterA || !fighterB) throw new Error("Selecione os dois lutadores");
+      let idA = fighterA.id;
+      let idB = fighterB.id;
+      if (idA === "__new__") idA = await findOrCreateFighter(fighterA.name);
+      if (idB === "__new__") idB = await findOrCreateFighter(fighterB.name);
       if (idA === idB) throw new Error("Lutadores devem ser diferentes");
       const { error } = await supabase.from("fights").insert({
         event_id: eventId!,
@@ -170,8 +171,8 @@ const AdminFights = () => {
     },
     onSuccess: () => {
       toast({ title: "Luta adicionada!" });
-      setFighterAName("");
-      setFighterBName("");
+      setFighterA(null);
+      setFighterB(null);
       setOddsA("");
       setOddsB("");
       setFightOrder((prev) => prev + 1);
@@ -274,8 +275,20 @@ const AdminFights = () => {
         <div className="glass-card rounded-xl p-6 space-y-4">
           <h2 className="font-display text-sm font-bold uppercase tracking-wider text-primary">Adicionar Luta</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <OSSInput label="Lutador A" placeholder="Ex: Max Holloway" value={fighterAName} onChange={(e) => setFighterAName(e.target.value)} />
-            <OSSInput label="Lutador B" placeholder="Ex: Islam Makhachev" value={fighterBName} onChange={(e) => setFighterBName(e.target.value)} />
+            <FighterPicker
+              label="Lutador A"
+              value={fighterA?.name || ""}
+              fighterId={fighterA?.id || null}
+              onSelect={setFighterA}
+              onClear={() => setFighterA(null)}
+            />
+            <FighterPicker
+              label="Lutador B"
+              value={fighterB?.name || ""}
+              fighterId={fighterB?.id || null}
+              onSelect={setFighterB}
+              onClear={() => setFighterB(null)}
+            />
             <div className="flex flex-col gap-1.5">
               <label className="text-xs font-medium uppercase tracking-wider text-muted-foreground font-display">Tipo de Luta</label>
               <select
@@ -301,7 +314,7 @@ const AdminFights = () => {
             <OSSInput label="Odds A" type="number" placeholder="-150" value={oddsA} onChange={(e) => setOddsA(e.target.value)} />
             <OSSInput label="Odds B" type="number" placeholder="+200" value={oddsB} onChange={(e) => setOddsB(e.target.value)} />
           </div>
-          <Button onClick={() => addMutation.mutate()} disabled={addMutation.isPending || !fighterAName.trim() || !fighterBName.trim()}>
+          <Button onClick={() => addMutation.mutate()} disabled={addMutation.isPending || !fighterA || !fighterB}>
             {addMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
             Adicionar Luta
           </Button>
