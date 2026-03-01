@@ -13,6 +13,15 @@ const LeaderboardPage = () => {
         .select("*, profiles!inner(display_name, avatar_url, instagram)")
         .is("event_id", null)
         .order("points", { ascending: false })
+        .order("wins", { ascending: false })
+        .order("correct_methods", { ascending: false })
+        .order("correct_rounds", { ascending: false })
+        .order("main_event_winner", { ascending: false })
+        .order("main_event_method", { ascending: false })
+        .order("main_event_round", { ascending: false })
+        .order("fotn_correct", { ascending: false })
+        .order("potn_correct", { ascending: false })
+        .order("zebra_count", { ascending: false })
         .limit(100);
       if (error) throw error;
       return data.map((entry, i) => ({
