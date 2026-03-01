@@ -50,7 +50,7 @@ const AdminPredictions = () => {
   // Fetch fight results for selected event
   const { data: results = [] } = useQuery({
     queryKey: ["admin-results", selectedEventId],
-    enabled: !!selectedEventId,
+    enabled: !!selectedEventId && fights.length > 0,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("fight_results")
