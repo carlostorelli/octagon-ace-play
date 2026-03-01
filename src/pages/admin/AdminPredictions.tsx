@@ -294,22 +294,42 @@ function UserRow({ user, rank, fights, fightMap, resultMap, isExpanded, onToggle
                   {fights.map((fight: any) => {
                     const pred = user.predictions.find((p: any) => p.fight_id === fight.id);
                     const result = resultMap[fight.id];
-                    const isCorrect = result && pred && result.winner_fighter_id === pred.winner_fighter_id;
+                    const isWinnerCorrect = result && pred && result.winner_fighter_id === pred.winner_fighter_id;
+                    
+                    // Check method match
+                    const normalizePredMethod = (m: string) => {
+                      const lower = m.toLowerCase();
+                      if (lower === "decision") return "decision";
+                      if (lower === "ko/tko") return "ko_tko";
+                      if (lower === "submission") return "submission";
+                      return lower;
+                    };
+                    const normalizeResultMethod = (m: string) => {
+                      if (m.startsWith("decision")) return "decision";
+                      return m;
+                    };
+                    const isMethodCorrect = isWinnerCorrect && pred?.method && result?.method
+                      ? normalizePredMethod(pred.method) === normalizeResultMethod(result.method)
+                      : false;
+
+                    // Green = winner + method, Yellow/accent = winner only, Red = wrong
+                    const borderClass = !pred
+                      ? "border-border bg-background/50"
+                      : isMethodCorrect
+                      ? "border-green-500/40 bg-green-500/10"
+                      : isWinnerCorrect
+                      ? "border-accent/30 bg-accent/5"
+                      : result
+                      ? "border-destructive/30 bg-destructive/5"
+                      : "border-border bg-background/50";
+
                     const fighterA = fight.fighter_a;
                     const fighterB = fight.fighter_b;
 
                     return (
                       <div
                         key={fight.id}
-                        className={`flex items-center justify-between rounded-lg px-3 py-2 text-sm border ${
-                          !pred
-                            ? "border-border bg-background/50"
-                            : isCorrect
-                            ? "border-accent/30 bg-accent/5"
-                            : result
-                            ? "border-destructive/30 bg-destructive/5"
-                            : "border-border bg-background/50"
-                        }`}
+                        className={`flex items-center justify-between rounded-lg px-3 py-2 text-sm border ${borderClass}`}
                       >
                         <div className="flex items-center gap-2">
                           <Swords className="h-3.5 w-3.5 text-muted-foreground" />
@@ -321,15 +341,16 @@ function UserRow({ user, rank, fights, fightMap, resultMap, isExpanded, onToggle
                           {pred ? (
                             <>
                               <span className={`font-display font-bold uppercase text-xs ${
-                                isCorrect ? "text-accent" : result ? "text-destructive" : "text-foreground"
+                                isMethodCorrect ? "text-green-400" : isWinnerCorrect ? "text-accent" : result ? "text-destructive" : "text-foreground"
                               }`}>
                                 {pred.winner_fighter_id === fighterA?.id ? fighterA?.name : fighterB?.name}
                               </span>
                               <span className="text-muted-foreground text-xs">
                                 {getMethodLabel(pred.method)}{pred.round ? ` R${pred.round}` : ""}
                               </span>
-                              {isCorrect && <Badge variant="default" className="text-[10px] bg-accent text-accent-foreground">✓</Badge>}
-                              {result && !isCorrect && <Badge variant="destructive" className="text-[10px]">✗</Badge>}
+                              {isMethodCorrect && <Badge className="text-[10px] bg-green-500 text-white border-0">✓✓</Badge>}
+                              {isWinnerCorrect && !isMethodCorrect && <Badge variant="default" className="text-[10px] bg-accent text-accent-foreground">✓</Badge>}
+                              {result && !isWinnerCorrect && <Badge variant="destructive" className="text-[10px]">✗</Badge>}
                             </>
                           ) : (
                             <span className="text-muted-foreground text-xs italic">Sem palpite</span>
