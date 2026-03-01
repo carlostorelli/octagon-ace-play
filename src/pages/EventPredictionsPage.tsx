@@ -1,15 +1,17 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Swords, Check, Loader2, FileText, Download, Trophy, Lock, Clock, Pencil, ArrowLeft, Play } from "lucide-react";
+import { Swords, Check, Loader2, FileText, Download, Trophy, Lock, Clock, Pencil, ArrowLeft, Play, Target } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import AppLayout from "@/components/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
 import FightCard from "@/components/predictions/FightCard";
+import MyResultsTab from "@/components/predictions/MyResultsTab";
 
 function getYouTubeId(url: string): string | null {
   if (!url) return null;
@@ -66,6 +68,21 @@ const EventPredictionsPage = () => {
     },
   });
 
+  // Fetch fight results for this event
+  const { data: fightResults = [] } = useQuery({
+    queryKey: ["fight-results", eventId],
+    enabled: !!eventId && fights.length > 0,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("fight_results")
+        .select("*")
+        .in("fight_id", fights.map((f: any) => f.id));
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const [activeTab, setActiveTab] = useState("predictions");
   const [predictions, setPredictions] = useState<Record<string, {
     winner_fighter_id: string;
     method: string | null;
@@ -243,45 +260,62 @@ const EventPredictionsPage = () => {
 
         {/* Meus Palpites - resumo */}
         {user && hasSavedPredictions && !isEditing && fights.length > 0 && (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Check className="h-4 w-4 text-accent" />
-                <span className="font-display text-sm font-bold uppercase tracking-wider text-accent">Meus Palpites</span>
-              </div>
-              {!isLocked && (
-                <Button variant="outline" size="sm" className="gap-2" onClick={() => setIsEditing(true)}>
-                  <Pencil className="h-3.5 w-3.5" /> Editar
-                </Button>
-              )}
-            </div>
-            <div className="glass-card rounded-xl divide-y divide-border overflow-hidden">
-              {fights.map((fight: any) => {
-                const pred = predictions[fight.id];
-                if (!pred) return null;
-                const winnerName = pred.winner_fighter_id === fight.fighter_a?.id
-                  ? fight.fighter_a?.name : fight.fighter_b?.name;
-                const loserName = pred.winner_fighter_id === fight.fighter_a?.id
-                  ? fight.fighter_b?.name : fight.fighter_a?.name;
-                return (
-                  <div key={fight.id} className="flex items-center justify-between px-4 py-3 text-sm">
-                    <div className="flex flex-col">
-                      <span className="font-display font-bold uppercase text-foreground">{winnerName}</span>
-                      <span className="text-xs text-muted-foreground">vs {loserName}</span>
-                    </div>
-                    <span className="text-muted-foreground text-right">
-                      {getMethodLabel(pred.method)}{pred.round ? ` — R${pred.round}` : ""}
-                    </span>
+          <Tabs value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="w-full max-w-xs">
+              <TabsTrigger value="predictions" className="flex-1 gap-1.5">
+                <Check className="h-3.5 w-3.5" /> Palpites
+              </TabsTrigger>
+              <TabsTrigger value="results" className="flex-1 gap-1.5">
+                <Target className="h-3.5 w-3.5" /> Resultados
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="predictions">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Check className="h-4 w-4 text-accent" />
+                    <span className="font-display text-sm font-bold uppercase tracking-wider text-accent">Meus Palpites</span>
                   </div>
-                );
-              })}
-            </div>
-            {isLocked && (
-              <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-                <Lock className="h-3 w-3" /> Seus palpites estão trancados e não podem mais ser alterados.
-              </p>
-            )}
-          </div>
+                  {!isLocked && (
+                    <Button variant="outline" size="sm" className="gap-2" onClick={() => setIsEditing(true)}>
+                      <Pencil className="h-3.5 w-3.5" /> Editar
+                    </Button>
+                  )}
+                </div>
+                <div className="glass-card rounded-xl divide-y divide-border overflow-hidden">
+                  {fights.map((fight: any) => {
+                    const pred = predictions[fight.id];
+                    if (!pred) return null;
+                    const winnerName = pred.winner_fighter_id === fight.fighter_a?.id
+                      ? fight.fighter_a?.name : fight.fighter_b?.name;
+                    const loserName = pred.winner_fighter_id === fight.fighter_a?.id
+                      ? fight.fighter_b?.name : fight.fighter_a?.name;
+                    return (
+                      <div key={fight.id} className="flex items-center justify-between px-4 py-3 text-sm">
+                        <div className="flex flex-col">
+                          <span className="font-display font-bold uppercase text-foreground">{winnerName}</span>
+                          <span className="text-xs text-muted-foreground">vs {loserName}</span>
+                        </div>
+                        <span className="text-muted-foreground text-right">
+                          {getMethodLabel(pred.method)}{pred.round ? ` — R${pred.round}` : ""}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+                {isLocked && (
+                  <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                    <Lock className="h-3 w-3" /> Seus palpites estão trancados e não podem mais ser alterados.
+                  </p>
+                )}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="results">
+              <MyResultsTab fights={fights} predictions={predictions} results={fightResults} />
+            </TabsContent>
+          </Tabs>
         )}
 
         {/* Fight cards */}
