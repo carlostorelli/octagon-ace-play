@@ -37,7 +37,7 @@ export default function MyResultsTab({ fights, predictions, results }: MyResults
   fights.forEach((fight) => {
     const pred = predictions[fight.id];
     const result = resultMap[fight.id];
-    if (!result) return;
+    if (!result || !result.winner_fighter_id) return; // skip cancelled/no result
     totalWithResult++;
     if (pred && result.winner_fighter_id === pred.winner_fighter_id) {
       correctWinners++;
@@ -82,14 +82,15 @@ export default function MyResultsTab({ fights, predictions, results }: MyResults
           const fighterA = fight.fighter_a;
           const fighterB = fight.fighter_b;
 
-          const isWinnerCorrect = result && pred && result.winner_fighter_id === pred.winner_fighter_id;
+          const isCancelled = result && !result.winner_fighter_id;
+          const isWinnerCorrect = result && result.winner_fighter_id && pred && result.winner_fighter_id === pred.winner_fighter_id;
           const isMethodCorrect = isWinnerCorrect && pred?.method && result?.method
             ? normalizePredMethod(pred.method) === normalizeResultMethod(result.method)
             : false;
 
           const bgClass = !pred
             ? "bg-background/50"
-            : !result
+            : !result || isCancelled
             ? "bg-background/50"
             : isMethodCorrect
             ? "bg-green-500/10 border-l-4 border-l-green-500"
@@ -113,16 +114,17 @@ export default function MyResultsTab({ fights, predictions, results }: MyResults
                 {pred ? (
                   <>
                     <span className={`font-display font-bold uppercase text-xs ${
-                      isMethodCorrect ? "text-green-400" : isWinnerCorrect ? "text-accent" : result ? "text-destructive" : "text-foreground"
+                      isCancelled ? "text-muted-foreground" : isMethodCorrect ? "text-green-400" : isWinnerCorrect ? "text-accent" : result ? "text-destructive" : "text-foreground"
                     }`}>
                       {pickedName}
                     </span>
                     <span className="text-muted-foreground text-xs">
                       {getMethodLabel(pred.method)}{pred.round ? ` R${pred.round}` : ""}
                     </span>
-                    {isMethodCorrect && <Badge className="text-[10px] bg-green-500 text-white border-0">✓✓</Badge>}
-                    {isWinnerCorrect && !isMethodCorrect && <Badge variant="default" className="text-[10px] bg-accent text-accent-foreground">✓</Badge>}
-                    {result && !isWinnerCorrect && <Badge variant="destructive" className="text-[10px]">✗</Badge>}
+                    {isCancelled && <Badge variant="secondary" className="text-[10px]">Cancelada</Badge>}
+                    {!isCancelled && isMethodCorrect && <Badge className="text-[10px] bg-green-500 text-white border-0">✓✓</Badge>}
+                    {!isCancelled && isWinnerCorrect && !isMethodCorrect && <Badge variant="default" className="text-[10px] bg-accent text-accent-foreground">✓</Badge>}
+                    {!isCancelled && result && !isWinnerCorrect && <Badge variant="destructive" className="text-[10px]">✗</Badge>}
                     {!result && <span className="text-muted-foreground text-[10px] italic">Aguardando</span>}
                   </>
                 ) : (

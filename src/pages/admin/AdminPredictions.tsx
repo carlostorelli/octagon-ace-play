@@ -294,7 +294,8 @@ function UserRow({ user, rank, fights, fightMap, resultMap, isExpanded, onToggle
                   {fights.map((fight: any) => {
                     const pred = user.predictions.find((p: any) => p.fight_id === fight.id);
                     const result = resultMap[fight.id];
-                    const isWinnerCorrect = result && pred && result.winner_fighter_id === pred.winner_fighter_id;
+                    const isCancelled = result && !result.winner_fighter_id;
+                    const isWinnerCorrect = result && result.winner_fighter_id && pred && result.winner_fighter_id === pred.winner_fighter_id;
                     
                     // Check method match
                     const normalizePredMethod = (m: string) => {
@@ -315,13 +316,13 @@ function UserRow({ user, rank, fights, fightMap, resultMap, isExpanded, onToggle
                     // Green = winner + method, Yellow/accent = winner only, Red = wrong
                     const borderClass = !pred
                       ? "border-border bg-background/50"
+                      : isCancelled || !result
+                      ? "border-border bg-background/50"
                       : isMethodCorrect
                       ? "border-green-500/40 bg-green-500/10"
                       : isWinnerCorrect
                       ? "border-accent/30 bg-accent/5"
-                      : result
-                      ? "border-destructive/30 bg-destructive/5"
-                      : "border-border bg-background/50";
+                      : "border-destructive/30 bg-destructive/5";
 
                     const fighterA = fight.fighter_a;
                     const fighterB = fight.fighter_b;
