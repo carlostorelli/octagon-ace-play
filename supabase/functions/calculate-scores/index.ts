@@ -6,6 +6,39 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
+// Normalize prediction method strings
+const normalizePredMethod = (m: string) => {
+  const lower = m.toLowerCase();
+  if (lower === "decision") return "decision";
+  if (lower === "ko/tko") return "ko_tko";
+  if (lower === "submission") return "submission";
+  return lower;
+};
+
+const normalizeResultMethod = (m: string) => {
+  if (m.startsWith("decision")) return "decision";
+  return m;
+};
+
+interface UserStats {
+  points: number;
+  wins: number;
+  correct_methods: number;
+  correct_rounds: number;
+  main_event_winner: boolean;
+  main_event_method: boolean;
+  main_event_round: boolean;
+  fotn_correct: boolean;
+  potn_correct: boolean;
+  zebra_count: number;
+}
+
+const newStats = (): UserStats => ({
+  points: 0, wins: 0, correct_methods: 0, correct_rounds: 0,
+  main_event_winner: false, main_event_method: false, main_event_round: false,
+  fotn_correct: false, potn_correct: false, zebra_count: 0,
+});
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -39,19 +72,22 @@ Deno.serve(async (req) => {
     // 2. Get fights with results for this event
     const { data: fights } = await supabase
       .from("fights")
-      .select("id, fight_type, fighter_a_id, fighter_b_id, odds_fighter_a, odds_fighter_b")
-      .eq("event_id", event_id);
+      .select("id, fight_type, fighter_a_id, fighter_b_id, odds_fighter_a, odds_fighter_b, fight_order, card_type")
+      .eq("event_id", event_id)
+      .order("fight_order", { ascending: false });
 
     const { data: fightResults } = await supabase
       .from("fight_results")
       .select("*")
       .in("fight_id", (fights ?? []).map((f) => f.id));
 
-    // Build result map by fight_id
     const resultMap: Record<string, any> = {};
     for (const r of fightResults ?? []) {
       resultMap[r.fight_id] = r;
     }
+
+    // Find main event fight (highest fight_order)
+    const mainEventFight = fights?.[0] ?? null;
 
     // 3. Get all predictions for this event
     const { data: predictions } = await supabase
@@ -60,23 +96,20 @@ Deno.serve(async (req) => {
       .eq("event_id", event_id);
 
     // 4. Calculate points per user
-    const userPoints: Record<string, { points: number; wins: number }> = {};
-
+    const userPoints: Record<string, UserStats> = {};
     const noWinnerMethods = ["draw", "no_contest", "cancelled"];
 
     for (const pred of predictions ?? []) {
       if (!userPoints[pred.user_id]) {
-        userPoints[pred.user_id] = { points: 0, wins: 0 };
+        userPoints[pred.user_id] = newStats();
       }
 
       const fight = fights?.find((f) => f.id === pred.fight_id);
       const result = resultMap[pred.fight_id];
       if (!fight || !result) continue;
 
-      // Skip cancelled/draw/no_contest fights
       if (noWinnerMethods.includes(result.method)) continue;
 
-      // Determine fight category suffix
       const typeSuffix =
         fight.fight_type === "title" ? "_title" :
         fight.fight_type === "5_rounds" ? "_5r" : "_3r";
@@ -89,52 +122,56 @@ Deno.serve(async (req) => {
       userPoints[pred.user_id].points += winnerPts;
       userPoints[pred.user_id].wins += 1;
 
-      // Correct method - normalize for comparison
+      // Check if this is the main event
+      const isMainEvent = mainEventFight && fight.id === mainEventFight.id;
+      if (isMainEvent) {
+        userPoints[pred.user_id].main_event_winner = true;
+      }
+
+      // Check method match
+      let methodMatch = false;
       if (pred.method && result.method) {
-        // Normalize: "Decision" -> "decision", "KO/TKO" -> "ko_tko", "Submission" -> "submission"
-        const normalizePredMethod = (m: string) => {
-          const lower = m.toLowerCase();
-          if (lower === "decision") return "decision";
-          if (lower === "ko/tko") return "ko_tko";
-          if (lower === "submission") return "submission";
-          return lower;
-        };
-        const normalizeResultMethod = (m: string) => {
-          if (m.startsWith("decision")) return "decision";
-          return m;
-        };
         const normPred = normalizePredMethod(pred.method);
         const normResult = normalizeResultMethod(result.method);
-        const isMethodMatch = normPred === normResult;
-        if (isMethodMatch) {
+        methodMatch = normPred === normResult;
+        if (methodMatch) {
           const methodPts = ruleMap[`method${typeSuffix}`] ?? 0;
           userPoints[pred.user_id].points += methodPts;
+          userPoints[pred.user_id].correct_methods += 1;
+          if (isMainEvent) {
+            userPoints[pred.user_id].main_event_method = true;
+          }
         }
       }
 
-      // Correct round (only for non-decision methods)
+      // Check round match (only for non-decision)
       if (pred.round && result.round && !result.method?.startsWith("decision")) {
         if (pred.round === result.round) {
           const roundPts = ruleMap[`round${typeSuffix}`] ?? 0;
           userPoints[pred.user_id].points += roundPts;
+          userPoints[pred.user_id].correct_rounds += 1;
+          if (isMainEvent) {
+            userPoints[pred.user_id].main_event_round = true;
+          }
         }
       }
 
-      // FOTN bonus: if fight is FOTN and user got the winner right
+      // FOTN bonus
       if (result.is_fotn) {
         userPoints[pred.user_id].points += ruleMap["fotn"] ?? 0;
+        userPoints[pred.user_id].fotn_correct = true;
       }
 
       // POTN bonus
       if (result.is_fatn) {
         userPoints[pred.user_id].points += ruleMap["potn"] ?? 0;
+        userPoints[pred.user_id].potn_correct = true;
       }
 
-      // Zebra bonus: if the winner was the underdog (positive odds = underdog)
+      // Zebra bonus
       const winnerIsA = result.winner_fighter_id === fight.fighter_a_id;
       const winnerOdds = winnerIsA ? fight.odds_fighter_a : fight.odds_fighter_b;
       if (winnerOdds != null && winnerOdds > 0) {
-        // Progressive zebra bonus based on odds
         let zebraBonus = 0;
         const absOdds = Math.abs(winnerOdds);
         if (absOdds >= 400) zebraBonus = 500;
@@ -143,19 +180,26 @@ Deno.serve(async (req) => {
         else if (absOdds >= 150) zebraBonus = 200;
         else if (absOdds >= 100) zebraBonus = 100;
         userPoints[pred.user_id].points += zebraBonus;
+        userPoints[pred.user_id].zebra_count += 1;
       }
     }
 
     // 5. Upsert into leaderboard
-    // Delete existing entries for this event
     await supabase.from("leaderboard").delete().eq("event_id", event_id);
 
-    // Insert new entries
-    const rows = Object.entries(userPoints).map(([user_id, { points, wins }]) => ({
+    const rows = Object.entries(userPoints).map(([user_id, s]) => ({
       user_id,
       event_id,
-      points,
-      wins,
+      points: s.points,
+      wins: s.wins,
+      correct_methods: s.correct_methods,
+      correct_rounds: s.correct_rounds,
+      main_event_winner: s.main_event_winner,
+      main_event_method: s.main_event_method,
+      main_event_round: s.main_event_round,
+      fotn_correct: s.fotn_correct,
+      potn_correct: s.potn_correct,
+      zebra_count: s.zebra_count,
     }));
 
     if (rows.length > 0) {
@@ -163,32 +207,45 @@ Deno.serve(async (req) => {
       if (insertError) throw insertError;
     }
 
-    // 6. Update general leaderboard (sum all events)
-    // We need to also update the "general" leaderboard (event_id = null)
-    // First get all leaderboard entries grouped by user
+    // 6. Update general leaderboard (aggregate all events)
     const { data: allEntries } = await supabase
       .from("leaderboard")
-      .select("user_id, points, wins")
+      .select("user_id, points, wins, correct_methods, correct_rounds, main_event_winner, main_event_method, main_event_round, fotn_correct, potn_correct, zebra_count")
       .not("event_id", "is", null);
 
-    const generalMap: Record<string, { points: number; wins: number }> = {};
+    const generalMap: Record<string, UserStats> = {};
     for (const entry of allEntries ?? []) {
       if (!generalMap[entry.user_id]) {
-        generalMap[entry.user_id] = { points: 0, wins: 0 };
+        generalMap[entry.user_id] = newStats();
       }
-      generalMap[entry.user_id].points += entry.points;
-      generalMap[entry.user_id].wins += entry.wins;
+      const g = generalMap[entry.user_id];
+      g.points += entry.points;
+      g.wins += entry.wins;
+      g.correct_methods += entry.correct_methods;
+      g.correct_rounds += entry.correct_rounds;
+      if (entry.main_event_winner) g.main_event_winner = true;
+      if (entry.main_event_method) g.main_event_method = true;
+      if (entry.main_event_round) g.main_event_round = true;
+      if (entry.fotn_correct) g.fotn_correct = true;
+      if (entry.potn_correct) g.potn_correct = true;
+      g.zebra_count += entry.zebra_count;
     }
 
-    // Delete existing general entries
     await supabase.from("leaderboard").delete().is("event_id", null);
 
-    // Insert general entries
-    const generalRows = Object.entries(generalMap).map(([user_id, { points, wins }]) => ({
+    const generalRows = Object.entries(generalMap).map(([user_id, s]) => ({
       user_id,
       event_id: null,
-      points,
-      wins,
+      points: s.points,
+      wins: s.wins,
+      correct_methods: s.correct_methods,
+      correct_rounds: s.correct_rounds,
+      main_event_winner: s.main_event_winner,
+      main_event_method: s.main_event_method,
+      main_event_round: s.main_event_round,
+      fotn_correct: s.fotn_correct,
+      potn_correct: s.potn_correct,
+      zebra_count: s.zebra_count,
     }));
 
     if (generalRows.length > 0) {

@@ -257,28 +257,52 @@ export type Database = {
       }
       leaderboard: {
         Row: {
+          correct_methods: number
+          correct_rounds: number
           event_id: string | null
+          fotn_correct: boolean
           id: string
+          main_event_method: boolean
+          main_event_round: boolean
+          main_event_winner: boolean
           points: number
+          potn_correct: boolean
           updated_at: string
           user_id: string
           wins: number
+          zebra_count: number
         }
         Insert: {
+          correct_methods?: number
+          correct_rounds?: number
           event_id?: string | null
+          fotn_correct?: boolean
           id?: string
+          main_event_method?: boolean
+          main_event_round?: boolean
+          main_event_winner?: boolean
           points?: number
+          potn_correct?: boolean
           updated_at?: string
           user_id: string
           wins?: number
+          zebra_count?: number
         }
         Update: {
+          correct_methods?: number
+          correct_rounds?: number
           event_id?: string | null
+          fotn_correct?: boolean
           id?: string
+          main_event_method?: boolean
+          main_event_round?: boolean
+          main_event_winner?: boolean
           points?: number
+          potn_correct?: boolean
           updated_at?: string
           user_id?: string
           wins?: number
+          zebra_count?: number
         }
         Relationships: [
           {
