@@ -166,14 +166,13 @@ const AdminScoring = () => {
           </h2>
           <ol className="text-sm text-muted-foreground space-y-1 list-decimal list-inside">
             <li>Mais vencedores acertados</li>
-            <li>Vencedores + métodos</li>
-            <li>Vencedores + métodos + rounds</li>
-            <li>Vencedor da luta principal</li>
-            <li>Vencedor + método da luta principal</li>
-            <li>Vencedor + método + round da luta principal</li>
-            <li>Luta da Noite</li>
-            <li>Performance da Noite</li>
-            <li>Fato da Noite</li>
+            <li>Mais vencedores + métodos acertados</li>
+            <li>Mais vencedores + métodos + rounds acertados</li>
+            <li>Acertou o vencedor da luta principal</li>
+            <li>Acertou o vencedor + método da luta principal</li>
+            <li>Acertou o vencedor + método + round da luta principal</li>
+            <li>Acertou a Luta da Noite (FOTN)</li>
+            <li>Acertou a Performance da Noite (POTN)</li>
             <li>Mais zebras acertadas</li>
           </ol>
           <p className="text-xs text-accent">🤝 Persistindo o empate → empate oficial</p>
