@@ -170,7 +170,7 @@ const LeaderboardPage = () => {
         .is("event_id", null)
         .eq("season", season);
       for (const o of LEADERBOARD_ORDER) q = q.order(o.column, { ascending: o.ascending });
-      const { data, error } = await q.limit(100);
+      const { data, error } = await q.limit(1000);
       if (error) throw error;
       return mapEntries(data ?? []);
     },
@@ -212,7 +212,7 @@ const LeaderboardPage = () => {
         .eq("event_id", activeEventId!)
         .eq("season", season);
       for (const o of LEADERBOARD_ORDER) q = q.order(o.column, { ascending: o.ascending });
-      const { data, error } = await q.limit(100);
+      const { data, error } = await q.limit(1000);
       if (error) throw error;
       return mapEntries(data ?? []);
     },
