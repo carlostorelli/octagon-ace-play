@@ -136,14 +136,22 @@ const Dashboard = () => {
     },
   });
 
-  // Completed events for event ranking tab
+  // Events that have leaderboard data (completed or with results)
   const { data: completedEvents = [] } = useQuery({
     queryKey: ["completed-events-for-ranking"],
     queryFn: async () => {
+      // Get event_ids that have leaderboard entries
+      const { data: lbEvents, error: lbError } = await supabase
+        .from("leaderboard")
+        .select("event_id")
+        .not("event_id", "is", null);
+      if (lbError) throw lbError;
+      const eventIds = [...new Set((lbEvents ?? []).map((e: any) => e.event_id))];
+      if (eventIds.length === 0) return [];
       const { data, error } = await supabase
         .from("events")
         .select("id, name, date")
-        .eq("status", "completed")
+        .in("id", eventIds)
         .order("date", { ascending: false })
         .limit(5);
       if (error) throw error;
