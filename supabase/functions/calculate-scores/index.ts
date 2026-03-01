@@ -39,6 +39,9 @@ const newStats = (): UserStats => ({
   fotn_correct: false, potn_correct: false, zebra_count: 0,
 });
 
+// Current season - update this each year
+const CURRENT_SEASON = "2026";
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -184,12 +187,13 @@ Deno.serve(async (req) => {
       }
     }
 
-    // 5. Upsert into leaderboard
+    // 5. Upsert into leaderboard (per-event, tagged with current season)
     await supabase.from("leaderboard").delete().eq("event_id", event_id);
 
     const rows = Object.entries(userPoints).map(([user_id, s]) => ({
       user_id,
       event_id,
+      season: CURRENT_SEASON,
       points: s.points,
       wins: s.wins,
       correct_methods: s.correct_methods,
@@ -207,11 +211,12 @@ Deno.serve(async (req) => {
       if (insertError) throw insertError;
     }
 
-    // 6. Update general leaderboard (aggregate all events)
+    // 6. Update general leaderboard for current season only
     const { data: allEntries } = await supabase
       .from("leaderboard")
       .select("user_id, points, wins, correct_methods, correct_rounds, main_event_winner, main_event_method, main_event_round, fotn_correct, potn_correct, zebra_count")
-      .not("event_id", "is", null);
+      .not("event_id", "is", null)
+      .eq("season", CURRENT_SEASON);
 
     const generalMap: Record<string, UserStats> = {};
     for (const entry of allEntries ?? []) {
@@ -231,11 +236,13 @@ Deno.serve(async (req) => {
       g.zebra_count += entry.zebra_count;
     }
 
-    await supabase.from("leaderboard").delete().is("event_id", null);
+    // Delete general entries only for current season
+    await supabase.from("leaderboard").delete().is("event_id", null).eq("season", CURRENT_SEASON);
 
     const generalRows = Object.entries(generalMap).map(([user_id, s]) => ({
       user_id,
       event_id: null,
+      season: CURRENT_SEASON,
       points: s.points,
       wins: s.wins,
       correct_methods: s.correct_methods,
@@ -256,6 +263,7 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
+        season: CURRENT_SEASON,
         users_scored: rows.length,
         total_predictions: (predictions ?? []).length,
       }),

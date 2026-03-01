@@ -1,18 +1,38 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Trophy, Medal, TrendingUp, Loader2, Instagram } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import AppLayout from "@/components/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import UserBadges from "@/components/UserBadges";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+const CURRENT_SEASON = "2026";
 
 const LeaderboardPage = () => {
+  const [season, setSeason] = useState(CURRENT_SEASON);
+
+  // Fetch available seasons
+  const { data: seasons = [] } = useQuery({
+    queryKey: ["leaderboard-seasons"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("leaderboard")
+        .select("season");
+      if (error) throw error;
+      const unique = [...new Set((data ?? []).map((r: any) => r.season).filter(Boolean))].sort().reverse();
+      return unique.length > 0 ? unique : [CURRENT_SEASON];
+    },
+  });
+
   const { data: leaderboard = [], isLoading } = useQuery({
-    queryKey: ["leaderboard"],
+    queryKey: ["leaderboard-season", season],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("leaderboard")
         .select("*, profiles!inner(display_name, avatar_url, instagram, verified)")
         .is("event_id", null)
+        .eq("season", season)
         .order("points", { ascending: false })
         .order("wins", { ascending: false })
         .order("correct_methods", { ascending: false })
@@ -43,13 +63,32 @@ const LeaderboardPage = () => {
   return (
     <AppLayout>
       <div className="container py-8 space-y-8">
-        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-          <h1 className="font-display text-3xl font-bold uppercase tracking-tight mb-1">Ranking Geral</h1>
-          <p className="text-muted-foreground">Classificação atualizada por pontuação total</p>
+        <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div>
+            <h1 className="font-display text-3xl font-bold uppercase tracking-tight mb-1">Ranking Geral</h1>
+            <p className="text-muted-foreground">Classificação atualizada por pontuação total</p>
+          </div>
+          <Select value={season} onValueChange={setSeason}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Temporada" />
+            </SelectTrigger>
+            <SelectContent>
+              {seasons.map((s) => (
+                <SelectItem key={s} value={s}>
+                  Temporada {s}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </motion.div>
 
         {isLoading ? (
           <div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+        ) : displayData.length === 0 ? (
+          <div className="text-center py-20 text-muted-foreground">
+            <Trophy className="h-12 w-12 mx-auto mb-4 opacity-30" />
+            <p className="font-display text-lg">Nenhum dado de ranking para a Temporada {season}</p>
+          </div>
         ) : (
           <>
             {/* Top 3 podium */}

@@ -86,9 +86,11 @@ const Dashboard = () => {
     },
   });
 
+  const CURRENT_SEASON = "2026";
+
   // User's own points and rank
   const { data: myStats } = useQuery({
-    queryKey: ["my-stats", user?.id],
+    queryKey: ["my-stats", user?.id, CURRENT_SEASON],
     enabled: !!user?.id,
     queryFn: async () => {
       // Get full sorted leaderboard to determine real rank with tiebreakers
@@ -96,6 +98,7 @@ const Dashboard = () => {
         .from("leaderboard")
         .select("user_id, points")
         .is("event_id", null)
+        .eq("season", CURRENT_SEASON)
         .order("points", { ascending: false })
         .order("wins", { ascending: false })
         .order("correct_methods", { ascending: false })
@@ -119,12 +122,13 @@ const Dashboard = () => {
 
   // Top 10 overall ranking
   const { data: rankingGeral = [] } = useQuery({
-    queryKey: ["leaderboard-geral-top10-v2"],
+    queryKey: ["leaderboard-geral-top10-v3", CURRENT_SEASON],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("leaderboard")
         .select("*, profiles!inner(display_name, avatar_url, instagram, verified)")
         .is("event_id", null)
+        .eq("season", CURRENT_SEASON)
         .order("points", { ascending: false })
         .order("wins", { ascending: false })
         .order("correct_methods", { ascending: false })
@@ -152,13 +156,14 @@ const Dashboard = () => {
 
   // Events that have leaderboard data (completed or with results)
   const { data: completedEvents = [] } = useQuery({
-    queryKey: ["completed-events-for-ranking"],
+    queryKey: ["completed-events-for-ranking", CURRENT_SEASON],
     queryFn: async () => {
-      // Get event_ids that have leaderboard entries
+      // Get event_ids that have leaderboard entries for current season
       const { data: lbEvents, error: lbError } = await supabase
         .from("leaderboard")
         .select("event_id")
-        .not("event_id", "is", null);
+        .not("event_id", "is", null)
+        .eq("season", CURRENT_SEASON);
       if (lbError) throw lbError;
       const eventIds = [...new Set((lbEvents ?? []).map((e: any) => e.event_id))];
       if (eventIds.length === 0) return [];
@@ -176,13 +181,14 @@ const Dashboard = () => {
   // Top 10 for latest completed event
   const latestEventId = completedEvents[0]?.id;
   const { data: rankingEvento = [] } = useQuery({
-    queryKey: ["leaderboard-evento-top10-v2", latestEventId],
+    queryKey: ["leaderboard-evento-top10-v3", latestEventId],
     enabled: !!latestEventId,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("leaderboard")
         .select("*, profiles!inner(display_name, avatar_url, instagram, verified)")
         .eq("event_id", latestEventId!)
+        .eq("season", CURRENT_SEASON)
         .order("points", { ascending: false })
         .order("wins", { ascending: false })
         .order("correct_methods", { ascending: false })

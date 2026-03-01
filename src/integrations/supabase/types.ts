@@ -267,6 +267,7 @@ export type Database = {
           main_event_winner: boolean
           points: number
           potn_correct: boolean
+          season: string
           updated_at: string
           user_id: string
           wins: number
@@ -283,6 +284,7 @@ export type Database = {
           main_event_winner?: boolean
           points?: number
           potn_correct?: boolean
+          season?: string
           updated_at?: string
           user_id: string
           wins?: number
@@ -299,6 +301,7 @@ export type Database = {
           main_event_winner?: boolean
           points?: number
           potn_correct?: boolean
+          season?: string
           updated_at?: string
           user_id?: string
           wins?: number
