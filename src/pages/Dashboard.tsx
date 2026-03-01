@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Calendar, Users, Trophy, Swords, TrendingUp, Loader2, LogOut, ArrowRight, Clock, MapPin, Lock, Instagram, Megaphone, X } from "lucide-react";
+import UserBadges from "@/components/UserBadges";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, Link } from "react-router-dom";
 import AppLayout from "@/components/AppLayout";
@@ -21,7 +22,7 @@ const StatCard = ({ icon: Icon, label, value, accent }: { icon: any; label: stri
   </div>
 );
 
-const LeaderboardRow = ({ rank, user, points, wins, avatar, avatarUrl, instagram }: { rank: number; user: string; points: number; wins: number; avatar: string; avatarUrl?: string | null; instagram?: string | null }) => (
+const LeaderboardRow = ({ rank, user, points, wins, avatar, avatarUrl, instagram, verified }: { rank: number; user: string; points: number; wins: number; avatar: string; avatarUrl?: string | null; instagram?: string | null; verified?: boolean }) => (
   <div className={`flex items-center justify-between rounded-lg px-4 py-3 ${rank <= 3 ? "bg-primary/5 border border-primary/10" : "bg-secondary/50"}`}>
     <div className="flex items-center gap-4">
       <span className={`font-display text-lg font-bold w-6 text-center ${rank === 1 ? "text-accent" : rank <= 3 ? "text-primary" : "text-muted-foreground"}`}>
@@ -33,7 +34,10 @@ const LeaderboardRow = ({ rank, user, points, wins, avatar, avatarUrl, instagram
         ) : avatar}
       </div>
       <div>
-        <span className="font-medium">{user}</span>
+        <span className="font-medium flex items-center gap-1">
+          {user}
+          <UserBadges verified={verified} rank={rank} />
+        </span>
         {instagram && (
           <p className="flex items-center gap-0.5 text-xs text-muted-foreground"><Instagram className="h-3 w-3" /> {instagram}</p>
         )}
@@ -119,7 +123,7 @@ const Dashboard = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("leaderboard")
-        .select("*, profiles!inner(display_name, avatar_url, instagram)")
+        .select("*, profiles!inner(display_name, avatar_url, instagram, verified)")
         .is("event_id", null)
         .order("points", { ascending: false })
         .order("wins", { ascending: false })
@@ -140,6 +144,7 @@ const Dashboard = () => {
         wins: entry.wins,
         avatarUrl: entry.profiles?.avatar_url || null,
         instagram: entry.profiles?.instagram || null,
+        verified: entry.profiles?.verified || false,
         avatar: (entry.profiles?.display_name || "??").slice(0, 2).toUpperCase(),
       }));
     },
@@ -176,7 +181,7 @@ const Dashboard = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("leaderboard")
-        .select("*, profiles!inner(display_name, avatar_url, instagram)")
+        .select("*, profiles!inner(display_name, avatar_url, instagram, verified)")
         .eq("event_id", latestEventId!)
         .order("points", { ascending: false })
         .order("wins", { ascending: false })
@@ -197,6 +202,7 @@ const Dashboard = () => {
         wins: entry.wins,
         avatarUrl: entry.profiles?.avatar_url || null,
         instagram: entry.profiles?.instagram || null,
+        verified: entry.profiles?.verified || false,
         avatar: (entry.profiles?.display_name || "??").slice(0, 2).toUpperCase(),
       }));
     },

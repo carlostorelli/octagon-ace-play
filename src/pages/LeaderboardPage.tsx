@@ -3,6 +3,7 @@ import { Trophy, Medal, TrendingUp, Loader2, Instagram } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import AppLayout from "@/components/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
+import UserBadges from "@/components/UserBadges";
 
 const LeaderboardPage = () => {
   const { data: leaderboard = [], isLoading } = useQuery({
@@ -10,7 +11,7 @@ const LeaderboardPage = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("leaderboard")
-        .select("*, profiles!inner(display_name, avatar_url, instagram)")
+        .select("*, profiles!inner(display_name, avatar_url, instagram, verified)")
         .is("event_id", null)
         .order("points", { ascending: false })
         .order("wins", { ascending: false })
@@ -31,6 +32,7 @@ const LeaderboardPage = () => {
         wins: entry.wins,
         avatarUrl: (entry.profiles as any)?.avatar_url || null,
         instagram: (entry.profiles as any)?.instagram || null,
+        verified: (entry.profiles as any)?.verified || false,
         avatar: ((entry.profiles as any)?.display_name || "??").slice(0, 2).toUpperCase(),
       }));
     },
@@ -73,7 +75,10 @@ const LeaderboardPage = () => {
                         ) : isFirst ? <Trophy className="h-7 w-7" /> : <Medal className="h-6 w-6" />}
                       </div>
                       <div className="font-display text-xl sm:text-2xl font-bold">{e.rank}º</div>
-                      <div className="font-semibold mt-1 text-xs sm:text-sm truncate max-w-full">{e.user}</div>
+                      <div className="font-semibold mt-1 text-xs sm:text-sm truncate max-w-full flex items-center justify-center gap-1">
+                        {e.user}
+                        <UserBadges verified={e.verified} rank={e.rank} />
+                      </div>
                       {e.instagram && (
                         <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground mt-0.5">
                           <Instagram className="h-3 w-3" /> {e.instagram}
@@ -110,7 +115,10 @@ const LeaderboardPage = () => {
                         ) : entry.avatar}
                       </div>
                       <div>
-                        <span className="font-semibold">{entry.user}</span>
+                        <span className="font-semibold flex items-center gap-1">
+                          {entry.user}
+                          <UserBadges verified={entry.verified} rank={entry.rank} />
+                        </span>
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
                           <span>{entry.wins} vitórias</span>
                           {entry.instagram && (

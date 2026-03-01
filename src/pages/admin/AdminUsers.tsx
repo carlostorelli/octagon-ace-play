@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import {
   Users, Shield, ShieldOff, Loader2, UserPlus, MoreHorizontal,
-  Trash2, Ban, Unlock, KeyRound, Pencil, Mail,
+  Trash2, Ban, Unlock, KeyRound, Pencil, Mail, BadgeCheck,
 } from "lucide-react";
 import AdminLayout from "@/components/AdminLayout";
 import { supabase } from "@/integrations/supabase/client";
@@ -31,6 +31,7 @@ interface AdminUser {
   display_name: string;
   avatar_url: string | null;
   instagram: string;
+  verified: boolean;
   roles: string[];
   banned: boolean;
 }
@@ -153,6 +154,15 @@ const AdminUsers = () => {
     onError: (err: any) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
   });
 
+  const toggleVerified = useMutation({
+    mutationFn: (userId: string) => invokeAction("toggle-verified", { user_id: userId }),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+      toast({ title: data.verified ? "Selo verificado adicionado" : "Selo verificado removido" });
+    },
+    onError: (err: any) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
+  });
+
   const openEdit = (user: AdminUser) => {
     setSelectedUser(user);
     setEditName(user.display_name);
@@ -231,6 +241,9 @@ const AdminUsers = () => {
                           <span className="font-medium text-foreground truncate">
                             {user.display_name}
                           </span>
+                          {user.verified && (
+                            <BadgeCheck className="h-4 w-4 text-blue-400 shrink-0" />
+                          )}
                           {isAdmin && (
                             <Badge className="bg-primary/20 text-primary border-primary/30 text-xs">
                               <Shield className="h-3 w-3 mr-1" /> Admin
@@ -271,6 +284,10 @@ const AdminUsers = () => {
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => resetPassword.mutate(user.id)}>
                             <KeyRound className="h-4 w-4 mr-2" /> Recuperar Senha
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => toggleVerified.mutate(user.id)}>
+                            <BadgeCheck className="h-4 w-4 mr-2" />
+                            {user.verified ? "Remover Verificado" : "Marcar Verificado"}
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           {user.banned ? (

@@ -47,16 +47,20 @@ serve(async (req) => {
       const { data: roles } = await adminClient.from("user_roles").select("*");
       const { data: profiles } = await adminClient.from("profiles").select("*");
 
-      const enriched = users.map((u) => ({
-        id: u.id,
-        email: u.email,
-        created_at: u.created_at,
-        display_name: profiles?.find((p) => p.user_id === u.id)?.display_name || u.email,
-        avatar_url: profiles?.find((p) => p.user_id === u.id)?.avatar_url,
-        instagram: profiles?.find((p) => p.user_id === u.id)?.instagram || "",
-        roles: roles?.filter((r) => r.user_id === u.id).map((r) => r.role) || [],
-        banned: u.banned_until ? (new Date(u.banned_until) > new Date() || u.banned_until === "forever") : false,
-      }));
+      const enriched = users.map((u) => {
+        const profile = profiles?.find((p) => p.user_id === u.id);
+        return {
+          id: u.id,
+          email: u.email,
+          created_at: u.created_at,
+          display_name: profile?.display_name || u.email,
+          avatar_url: profile?.avatar_url,
+          instagram: profile?.instagram || "",
+          verified: profile?.verified || false,
+          roles: roles?.filter((r) => r.user_id === u.id).map((r) => r.role) || [],
+          banned: u.banned_until ? (new Date(u.banned_until) > new Date() || u.banned_until === "forever") : false,
+        };
+      });
 
       return new Response(JSON.stringify(enriched), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -192,6 +196,29 @@ serve(async (req) => {
       }
 
       return new Response(JSON.stringify({ success: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // TOGGLE VERIFIED
+    if (req.method === "POST" && action === "toggle-verified") {
+      const { user_id } = await req.json();
+      if (!user_id) throw new Error("user_id required");
+
+      const { data: profile } = await adminClient
+        .from("profiles")
+        .select("verified")
+        .eq("user_id", user_id)
+        .maybeSingle();
+
+      const newVal = !(profile?.verified ?? false);
+      const { error } = await adminClient
+        .from("profiles")
+        .update({ verified: newVal })
+        .eq("user_id", user_id);
+      if (error) throw error;
+
+      return new Response(JSON.stringify({ verified: newVal }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
