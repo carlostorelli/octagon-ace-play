@@ -1,13 +1,150 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Trophy, Medal, TrendingUp, Loader2, Instagram } from "lucide-react";
+import { Trophy, Medal, TrendingUp, Loader2, Instagram, Crown } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import AppLayout from "@/components/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
 import UserBadges from "@/components/UserBadges";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const CURRENT_SEASON = "2026";
+
+const MONTH_NAMES: Record<string, string> = {
+  "01": "Janeiro", "02": "Fevereiro", "03": "Março", "04": "Abril",
+  "05": "Maio", "06": "Junho", "07": "Julho", "08": "Agosto",
+  "09": "Setembro", "10": "Outubro", "11": "Novembro", "12": "Dezembro",
+};
+
+interface RankedEntry {
+  rank: number;
+  user: string;
+  points: number;
+  wins: number;
+  avatarUrl: string | null;
+  instagram: string | null;
+  verified: boolean;
+  avatar: string;
+}
+
+const mapEntries = (data: any[]): RankedEntry[] =>
+  data.map((entry, i) => ({
+    rank: i + 1,
+    user: (entry.profiles as any)?.display_name || "Anônimo",
+    points: entry.points,
+    wins: entry.wins,
+    avatarUrl: (entry.profiles as any)?.avatar_url || null,
+    instagram: (entry.profiles as any)?.instagram || null,
+    verified: (entry.profiles as any)?.verified || false,
+    avatar: ((entry.profiles as any)?.display_name || "??").slice(0, 2).toUpperCase(),
+  }));
+
+const LEADERBOARD_ORDER = [
+  { column: "points", ascending: false },
+  { column: "wins", ascending: false },
+  { column: "correct_methods", ascending: false },
+  { column: "correct_rounds", ascending: false },
+  { column: "main_event_winner", ascending: false },
+  { column: "main_event_method", ascending: false },
+  { column: "main_event_round", ascending: false },
+  { column: "fotn_correct", ascending: false },
+  { column: "potn_correct", ascending: false },
+  { column: "zebra_count", ascending: false },
+];
+
+const Podium = ({ data }: { data: RankedEntry[] }) => {
+  if (data.length < 3) return null;
+  return (
+    <div className="grid grid-cols-3 gap-2 sm:gap-4">
+      {[1, 0, 2].map((orderIdx, i) => {
+        const e = data[orderIdx];
+        if (!e) return null;
+        const isFirst = orderIdx === 0;
+        return (
+          <motion.div
+            key={e.rank}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: i * 0.15 }}
+            className={`glass-card rounded-xl p-3 sm:p-6 text-center ${isFirst ? "border-accent/30 -mt-4" : ""}`}
+          >
+            <div className={`mx-auto mb-2 sm:mb-3 flex h-12 w-12 sm:h-16 sm:w-16 items-center justify-center rounded-full overflow-hidden ${
+              isFirst ? "bg-accent text-accent-foreground" : "bg-secondary text-muted-foreground"
+            }`}>
+              {e.avatarUrl ? (
+                <img src={e.avatarUrl} alt={e.user} className="h-full w-full object-cover" />
+              ) : isFirst ? <Trophy className="h-7 w-7" /> : <Medal className="h-6 w-6" />}
+            </div>
+            <div className="font-display text-xl sm:text-2xl font-bold">{e.rank}º</div>
+            <div className="font-semibold mt-1 text-xs sm:text-sm truncate max-w-full flex items-center justify-center gap-1">
+              {e.user}
+              <UserBadges verified={e.verified} rank={e.rank} />
+            </div>
+            {e.instagram && (
+              <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground mt-0.5">
+                <Instagram className="h-3 w-3" /> {e.instagram}
+              </div>
+            )}
+            <div className="text-accent font-display text-sm sm:text-lg font-bold mt-2">{e.points.toLocaleString()} pts</div>
+            <div className="text-xs text-muted-foreground mt-1">{e.wins} vitórias</div>
+          </motion.div>
+        );
+      })}
+    </div>
+  );
+};
+
+const RankingTable = ({ data }: { data: RankedEntry[] }) => (
+  <div className="glass-card rounded-xl overflow-hidden">
+    <div className="divide-y divide-border">
+      {data.map((entry, i) => (
+        <motion.div
+          key={`${entry.rank}-${entry.user}`}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: i * 0.05 }}
+          className="flex items-center justify-between px-6 py-4 hover:bg-secondary/30 transition-colors"
+        >
+          <div className="flex items-center gap-4">
+            <span className={`font-display text-lg font-bold w-8 text-center ${
+              entry.rank === 1 ? "text-accent" : entry.rank <= 3 ? "text-primary" : "text-muted-foreground"
+            }`}>
+              {entry.rank}
+            </span>
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary text-sm font-bold overflow-hidden">
+              {entry.avatarUrl ? (
+                <img src={entry.avatarUrl} alt={entry.user} className="h-full w-full object-cover" />
+              ) : entry.avatar}
+            </div>
+            <div>
+              <span className="font-semibold flex items-center gap-1">
+                {entry.user}
+                <UserBadges verified={entry.verified} rank={entry.rank} />
+              </span>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <span>{entry.wins} vitórias</span>
+                {entry.instagram && (
+                  <span className="flex items-center gap-0.5"><Instagram className="h-3 w-3" /> {entry.instagram}</span>
+                )}
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <TrendingUp className="h-4 w-4 text-accent" />
+            <span className="font-display text-lg font-bold">{entry.points.toLocaleString()}</span>
+          </div>
+        </motion.div>
+      ))}
+    </div>
+  </div>
+);
+
+const EmptyState = ({ message }: { message: string }) => (
+  <div className="text-center py-20 text-muted-foreground">
+    <Trophy className="h-12 w-12 mx-auto mb-4 opacity-30" />
+    <p className="font-display text-lg">{message}</p>
+  </div>
+);
 
 const LeaderboardPage = () => {
   const [season, setSeason] = useState(CURRENT_SEASON);
@@ -16,56 +153,152 @@ const LeaderboardPage = () => {
   const { data: seasons = [] } = useQuery({
     queryKey: ["leaderboard-seasons"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("leaderboard")
-        .select("season");
+      const { data, error } = await supabase.from("leaderboard").select("season");
       if (error) throw error;
       const unique = [...new Set((data ?? []).map((r: any) => r.season).filter(Boolean))].sort().reverse();
       return unique.length > 0 ? unique : [CURRENT_SEASON];
     },
   });
 
-  const { data: leaderboard = [], isLoading } = useQuery({
-    queryKey: ["leaderboard-season", season],
+  // General ranking
+  const { data: rankingGeral = [], isLoading: loadingGeral } = useQuery({
+    queryKey: ["leaderboard-geral", season],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let q = supabase
         .from("leaderboard")
         .select("*, profiles!inner(display_name, avatar_url, instagram, verified)")
         .is("event_id", null)
-        .eq("season", season)
-        .order("points", { ascending: false })
-        .order("wins", { ascending: false })
-        .order("correct_methods", { ascending: false })
-        .order("correct_rounds", { ascending: false })
-        .order("main_event_winner", { ascending: false })
-        .order("main_event_method", { ascending: false })
-        .order("main_event_round", { ascending: false })
-        .order("fotn_correct", { ascending: false })
-        .order("potn_correct", { ascending: false })
-        .order("zebra_count", { ascending: false })
-        .limit(100);
+        .eq("season", season);
+      for (const o of LEADERBOARD_ORDER) q = q.order(o.column, { ascending: o.ascending });
+      const { data, error } = await q.limit(100);
       if (error) throw error;
-      return data.map((entry, i) => ({
-        rank: i + 1,
-        user: (entry.profiles as any)?.display_name || "Anônimo",
-        points: entry.points,
-        wins: entry.wins,
-        avatarUrl: (entry.profiles as any)?.avatar_url || null,
-        instagram: (entry.profiles as any)?.instagram || null,
-        verified: (entry.profiles as any)?.verified || false,
-        avatar: ((entry.profiles as any)?.display_name || "??").slice(0, 2).toUpperCase(),
-      }));
+      return mapEntries(data ?? []);
     },
   });
 
-  const displayData = leaderboard;
+  // Events with leaderboard data for this season
+  const { data: completedEvents = [] } = useQuery({
+    queryKey: ["lb-events", season],
+    queryFn: async () => {
+      const { data: lbEvents, error: lbError } = await supabase
+        .from("leaderboard")
+        .select("event_id")
+        .not("event_id", "is", null)
+        .eq("season", season);
+      if (lbError) throw lbError;
+      const eventIds = [...new Set((lbEvents ?? []).map((e: any) => e.event_id))];
+      if (eventIds.length === 0) return [];
+      const { data, error } = await supabase
+        .from("events")
+        .select("id, name, date")
+        .in("id", eventIds)
+        .order("date", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+  const activeEventId = selectedEventId || completedEvents[0]?.id || null;
+
+  // Event ranking
+  const { data: rankingEvento = [], isLoading: loadingEvento } = useQuery({
+    queryKey: ["leaderboard-evento", activeEventId],
+    enabled: !!activeEventId,
+    queryFn: async () => {
+      let q = supabase
+        .from("leaderboard")
+        .select("*, profiles!inner(display_name, avatar_url, instagram, verified)")
+        .eq("event_id", activeEventId!)
+        .eq("season", season);
+      for (const o of LEADERBOARD_ORDER) q = q.order(o.column, { ascending: o.ascending });
+      const { data, error } = await q.limit(100);
+      if (error) throw error;
+      return mapEntries(data ?? []);
+    },
+  });
+
+  // Monthly champion data: fetch all per-event entries + event dates for the season
+  const { data: monthlyRaw = [] } = useQuery({
+    queryKey: ["leaderboard-monthly-raw", season],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("leaderboard")
+        .select("user_id, points, wins, event_id, profiles!inner(display_name, avatar_url, instagram, verified)")
+        .not("event_id", "is", null)
+        .eq("season", season);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const { data: eventsForMonthly = [] } = useQuery({
+    queryKey: ["events-for-monthly", season],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("events").select("id, date");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  // Compute monthly aggregations
+  const eventMonthMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const e of eventsForMonthly) {
+      // date is YYYY-MM-DD, extract YYYY-MM
+      map[e.id] = (e.date as string).slice(0, 7);
+    }
+    return map;
+  }, [eventsForMonthly]);
+
+  const monthlyData = useMemo(() => {
+    // Group entries by month, then by user, sum points
+    const byMonth: Record<string, Record<string, { points: number; wins: number; profile: any }>> = {};
+    for (const entry of monthlyRaw as any[]) {
+      const month = eventMonthMap[entry.event_id];
+      if (!month) continue;
+      if (!byMonth[month]) byMonth[month] = {};
+      if (!byMonth[month][entry.user_id]) {
+        byMonth[month][entry.user_id] = { points: 0, wins: 0, profile: entry.profiles };
+      }
+      byMonth[month][entry.user_id].points += entry.points;
+      byMonth[month][entry.user_id].wins += entry.wins;
+    }
+
+    // Convert to sorted arrays per month
+    const result: Record<string, RankedEntry[]> = {};
+    for (const [month, users] of Object.entries(byMonth)) {
+      const sorted = Object.entries(users)
+        .sort((a, b) => b[1].points - a[1].points || b[1].wins - a[1].wins)
+        .map(([, data], i) => ({
+          rank: i + 1,
+          user: data.profile?.display_name || "Anônimo",
+          points: data.points,
+          wins: data.wins,
+          avatarUrl: data.profile?.avatar_url || null,
+          instagram: data.profile?.instagram || null,
+          verified: data.profile?.verified || false,
+          avatar: (data.profile?.display_name || "??").slice(0, 2).toUpperCase(),
+        }));
+      result[month] = sorted;
+    }
+    return result;
+  }, [monthlyRaw, eventMonthMap]);
+
+  const availableMonths = useMemo(
+    () => Object.keys(monthlyData).sort().reverse(),
+    [monthlyData]
+  );
+  const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
+  const activeMonth = selectedMonth || availableMonths[0] || null;
+  const monthEntries = activeMonth ? monthlyData[activeMonth] ?? [] : [];
 
   return (
     <AppLayout>
       <div className="container py-8 space-y-8">
         <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="font-display text-3xl font-bold uppercase tracking-tight mb-1">Ranking Geral</h1>
+            <h1 className="font-display text-3xl font-bold uppercase tracking-tight mb-1">Ranking</h1>
             <p className="text-muted-foreground">Classificação atualizada por pontuação total</p>
           </div>
           <Select value={season} onValueChange={setSeason}>
@@ -74,108 +307,113 @@ const LeaderboardPage = () => {
             </SelectTrigger>
             <SelectContent>
               {seasons.map((s) => (
-                <SelectItem key={s} value={s}>
-                  Temporada {s}
-                </SelectItem>
+                <SelectItem key={s} value={s}>Temporada {s}</SelectItem>
               ))}
             </SelectContent>
           </Select>
         </motion.div>
 
-        {isLoading ? (
-          <div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
-        ) : displayData.length === 0 ? (
-          <div className="text-center py-20 text-muted-foreground">
-            <Trophy className="h-12 w-12 mx-auto mb-4 opacity-30" />
-            <p className="font-display text-lg">Nenhum dado de ranking para a Temporada {season}</p>
-          </div>
-        ) : (
-          <>
-            {/* Top 3 podium */}
-            {displayData.length >= 3 && (
-              <div className="grid grid-cols-3 gap-2 sm:gap-4">
-                {[1, 0, 2].map((orderIdx, i) => {
-                  const e = displayData[orderIdx];
-                  if (!e) return null;
-                  const isFirst = orderIdx === 0;
-                  return (
-                    <motion.div
-                      key={e.rank}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: i * 0.15 }}
-                      className={`glass-card rounded-xl p-3 sm:p-6 text-center ${isFirst ? "border-accent/30 -mt-4" : ""}`}
-                    >
-                      <div className={`mx-auto mb-2 sm:mb-3 flex h-12 w-12 sm:h-16 sm:w-16 items-center justify-center rounded-full overflow-hidden ${
-                        isFirst ? "bg-accent text-accent-foreground" : "bg-secondary text-muted-foreground"
-                      }`}>
-                        {e.avatarUrl ? (
-                          <img src={e.avatarUrl} alt={e.user} className="h-full w-full object-cover" />
-                        ) : isFirst ? <Trophy className="h-7 w-7" /> : <Medal className="h-6 w-6" />}
-                      </div>
-                      <div className="font-display text-xl sm:text-2xl font-bold">{e.rank}º</div>
-                      <div className="font-semibold mt-1 text-xs sm:text-sm truncate max-w-full flex items-center justify-center gap-1">
-                        {e.user}
-                        <UserBadges verified={e.verified} rank={e.rank} />
-                      </div>
-                      {e.instagram && (
-                        <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground mt-0.5">
-                          <Instagram className="h-3 w-3" /> {e.instagram}
-                        </div>
-                      )}
-                      <div className="text-accent font-display text-sm sm:text-lg font-bold mt-2">{e.points.toLocaleString()} pts</div>
-                      <div className="text-xs text-muted-foreground mt-1">{e.wins} vitórias</div>
-                    </motion.div>
-                  );
-                })}
-              </div>
-            )}
+        <Tabs defaultValue="geral">
+          <TabsList className="mb-4">
+            <TabsTrigger value="geral">Ranking Geral</TabsTrigger>
+            <TabsTrigger value="evento">Por Evento</TabsTrigger>
+            <TabsTrigger value="mensal">
+              <Crown className="h-4 w-4 mr-1.5" /> Campeão do Mês
+            </TabsTrigger>
+          </TabsList>
 
-            {/* Full table */}
-            <div className="glass-card rounded-xl overflow-hidden">
-              <div className="divide-y divide-border">
-                {displayData.map((entry, i) => (
-                  <motion.div
-                    key={entry.rank}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: i * 0.05 }}
-                    className="flex items-center justify-between px-6 py-4 hover:bg-secondary/30 transition-colors"
-                  >
-                    <div className="flex items-center gap-4">
-                      <span className={`font-display text-lg font-bold w-8 text-center ${
-                        entry.rank === 1 ? "text-accent" : entry.rank <= 3 ? "text-primary" : "text-muted-foreground"
-                      }`}>
-                        {entry.rank}
-                      </span>
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary text-sm font-bold overflow-hidden">
-                        {entry.avatarUrl ? (
-                          <img src={entry.avatarUrl} alt={entry.user} className="h-full w-full object-cover" />
-                        ) : entry.avatar}
+          {/* ── Ranking Geral ── */}
+          <TabsContent value="geral" className="space-y-6">
+            {loadingGeral ? (
+              <div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+            ) : rankingGeral.length === 0 ? (
+              <EmptyState message={`Nenhum dado de ranking para a Temporada ${season}`} />
+            ) : (
+              <>
+                <Podium data={rankingGeral} />
+                <RankingTable data={rankingGeral} />
+              </>
+            )}
+          </TabsContent>
+
+          {/* ── Por Evento ── */}
+          <TabsContent value="evento" className="space-y-6">
+            {completedEvents.length === 0 ? (
+              <EmptyState message="Nenhum evento com ranking calculado nesta temporada" />
+            ) : (
+              <>
+                <Select value={activeEventId ?? ""} onValueChange={setSelectedEventId}>
+                  <SelectTrigger className="w-full sm:w-[300px]">
+                    <SelectValue placeholder="Selecionar evento" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {completedEvents.map((e: any) => (
+                      <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {loadingEvento ? (
+                  <div className="flex items-center justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+                ) : rankingEvento.length === 0 ? (
+                  <EmptyState message="Nenhum dado para este evento" />
+                ) : (
+                  <>
+                    <Podium data={rankingEvento} />
+                    <RankingTable data={rankingEvento} />
+                  </>
+                )}
+              </>
+            )}
+          </TabsContent>
+
+          {/* ── Campeão do Mês ── */}
+          <TabsContent value="mensal" className="space-y-6">
+            {availableMonths.length === 0 ? (
+              <EmptyState message="Nenhum dado mensal disponível nesta temporada" />
+            ) : (
+              <>
+                <Select value={activeMonth ?? ""} onValueChange={setSelectedMonth}>
+                  <SelectTrigger className="w-full sm:w-[300px]">
+                    <SelectValue placeholder="Selecionar mês" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableMonths.map((m) => {
+                      const [year, month] = m.split("-");
+                      return (
+                        <SelectItem key={m} value={m}>
+                          {MONTH_NAMES[month] || month} {year}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+
+                {monthEntries.length > 0 && monthEntries[0] && (
+                  <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="glass-card rounded-xl p-6 text-center border-accent/20">
+                    <Crown className="h-8 w-8 text-accent mx-auto mb-2" />
+                    <p className="font-mono text-xs uppercase tracking-widest text-muted-foreground mb-1">Campeão do Mês</p>
+                    <div className="flex items-center justify-center gap-3 mb-2">
+                      <div className="flex h-14 w-14 items-center justify-center rounded-full bg-accent/20 text-lg font-bold overflow-hidden">
+                        {monthEntries[0].avatarUrl ? (
+                          <img src={monthEntries[0].avatarUrl} alt={monthEntries[0].user} className="h-full w-full object-cover" />
+                        ) : monthEntries[0].avatar}
                       </div>
-                      <div>
-                        <span className="font-semibold flex items-center gap-1">
-                          {entry.user}
-                          <UserBadges verified={entry.verified} rank={entry.rank} />
-                        </span>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <span>{entry.wins} vitórias</span>
-                          {entry.instagram && (
-                            <span className="flex items-center gap-0.5"><Instagram className="h-3 w-3" /> {entry.instagram}</span>
-                          )}
-                        </div>
+                      <div className="text-left">
+                        <p className="font-display text-2xl font-bold uppercase flex items-center gap-1">
+                          {monthEntries[0].user}
+                          <UserBadges verified={monthEntries[0].verified} rank={1} />
+                        </p>
+                        <p className="text-accent font-display text-lg font-bold">{monthEntries[0].points.toLocaleString()} pts</p>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <TrendingUp className="h-4 w-4 text-accent" />
-                      <span className="font-display text-lg font-bold">{entry.points.toLocaleString()}</span>
                     </div>
                   </motion.div>
-                ))}
-              </div>
-            </div>
-          </>
-        )}
+                )}
+
+                <RankingTable data={monthEntries} />
+              </>
+            )}
+          </TabsContent>
+        </Tabs>
       </div>
     </AppLayout>
   );
