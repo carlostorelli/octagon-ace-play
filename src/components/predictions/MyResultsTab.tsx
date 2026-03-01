@@ -21,6 +21,16 @@ const normalizeResultMethod = (m: string) => {
   return m;
 };
 
+// Full match: for Decision, just method. For KO/TKO and Submission, method + round.
+const isFullMethodMatch = (pred: { method: string | null; round: number | null }, result: { method: string | null; round: number | null }) => {
+  if (!pred.method || !result.method) return false;
+  const pm = normalizePredMethod(pred.method);
+  const rm = normalizeResultMethod(result.method);
+  if (pm !== rm) return false;
+  if (pm === "decision") return true;
+  return pred.round != null && result.round != null && pred.round === result.round;
+};
+
 interface MyResultsTabProps {
   fights: any[];
   predictions: Record<string, { winner_fighter_id: string; method: string | null; round: number | null }>;
@@ -41,7 +51,7 @@ export default function MyResultsTab({ fights, predictions, results }: MyResults
     totalWithResult++;
     if (pred && result.winner_fighter_id === pred.winner_fighter_id) {
       correctWinners++;
-      if (pred.method && result.method && normalizePredMethod(pred.method) === normalizeResultMethod(result.method)) {
+      if (isFullMethodMatch(pred, result)) {
         correctMethods++;
       }
     }
@@ -84,9 +94,7 @@ export default function MyResultsTab({ fights, predictions, results }: MyResults
 
           const isCancelled = result && !result.winner_fighter_id;
           const isWinnerCorrect = result && result.winner_fighter_id && pred && result.winner_fighter_id === pred.winner_fighter_id;
-          const isMethodCorrect = isWinnerCorrect && pred?.method && result?.method
-            ? normalizePredMethod(pred.method) === normalizeResultMethod(result.method)
-            : false;
+          const isMethodCorrect = isWinnerCorrect && pred ? isFullMethodMatch(pred, result) : false;
 
           const bgClass = !pred
             ? "bg-background/50"

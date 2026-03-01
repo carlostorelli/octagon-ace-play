@@ -309,9 +309,14 @@ function UserRow({ user, rank, fights, fightMap, resultMap, isExpanded, onToggle
                       if (m.startsWith("decision")) return "decision";
                       return m;
                     };
-                    const isMethodCorrect = isWinnerCorrect && pred?.method && result?.method
+                    // Full match: Decision = just method, KO/TKO & Submission = method + round
+                    const methodMatches = isWinnerCorrect && pred?.method && result?.method
                       ? normalizePredMethod(pred.method) === normalizeResultMethod(result.method)
                       : false;
+                    const isMethodCorrect = methodMatches && (
+                      normalizeResultMethod(result.method!) === "decision"
+                      || (pred?.round != null && result?.round != null && pred.round === result.round)
+                    );
 
                     // Green = winner + method, Yellow/accent = winner only, Red = wrong
                     const borderClass = !pred
