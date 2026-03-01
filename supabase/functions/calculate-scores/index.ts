@@ -91,12 +91,21 @@ Deno.serve(async (req) => {
 
       // Correct method - normalize for comparison
       if (pred.method && result.method) {
-        const predMethod = pred.method;
-        const resultMethod = result.method;
-        // Match: both are same, or both are decision variants
-        const isMethodMatch =
-          predMethod === resultMethod ||
-          (predMethod.startsWith("decision") && resultMethod.startsWith("decision"));
+        // Normalize: "Decision" -> "decision", "KO/TKO" -> "ko_tko", "Submission" -> "submission"
+        const normalizePredMethod = (m: string) => {
+          const lower = m.toLowerCase();
+          if (lower === "decision") return "decision";
+          if (lower === "ko/tko") return "ko_tko";
+          if (lower === "submission") return "submission";
+          return lower;
+        };
+        const normalizeResultMethod = (m: string) => {
+          if (m.startsWith("decision")) return "decision";
+          return m;
+        };
+        const normPred = normalizePredMethod(pred.method);
+        const normResult = normalizeResultMethod(result.method);
+        const isMethodMatch = normPred === normResult;
         if (isMethodMatch) {
           const methodPts = ruleMap[`method${typeSuffix}`] ?? 0;
           userPoints[pred.user_id].points += methodPts;
