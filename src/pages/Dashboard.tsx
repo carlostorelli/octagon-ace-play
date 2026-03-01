@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Calendar, Users, Trophy, Swords, TrendingUp, Loader2, LogOut, ArrowRight, Clock, MapPin, Lock, Instagram, Megaphone, X } from "lucide-react";
+import { Calendar, Users, Trophy, Swords, TrendingUp, Loader2, LogOut, ArrowRight, Clock, MapPin, Lock, Instagram, Megaphone, X, Crown } from "lucide-react";
 import UserBadges from "@/components/UserBadges";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, Link } from "react-router-dom";
@@ -214,6 +214,62 @@ const Dashboard = () => {
     },
   });
 
+  // Monthly ranking: fetch per-event entries + event dates for current season
+  const { data: monthlyRaw = [] } = useQuery({
+    queryKey: ["dashboard-monthly-raw", CURRENT_SEASON],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("leaderboard")
+        .select("user_id, points, wins, event_id, profiles!inner(display_name, avatar_url, instagram, verified)")
+        .not("event_id", "is", null)
+        .eq("season", CURRENT_SEASON);
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const { data: eventsForMonthly = [] } = useQuery({
+    queryKey: ["dashboard-events-dates"],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("events").select("id, date");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const rankingMensal = useMemo(() => {
+    const eventMonthMap: Record<string, string> = {};
+    for (const e of eventsForMonthly) eventMonthMap[e.id] = (e.date as string).slice(0, 7);
+    
+    const now = new Date();
+    const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    
+    const userAgg: Record<string, { points: number; wins: number; profile: any }> = {};
+    for (const entry of monthlyRaw as any[]) {
+      const month = eventMonthMap[entry.event_id];
+      if (month !== currentMonth) continue;
+      if (!userAgg[entry.user_id]) {
+        userAgg[entry.user_id] = { points: 0, wins: 0, profile: entry.profiles };
+      }
+      userAgg[entry.user_id].points += entry.points;
+      userAgg[entry.user_id].wins += entry.wins;
+    }
+
+    return Object.entries(userAgg)
+      .sort((a, b) => b[1].points - a[1].points || b[1].wins - a[1].wins)
+      .slice(0, 10)
+      .map(([, data], i) => ({
+        rank: i + 1,
+        user: data.profile?.display_name || "Anônimo",
+        points: data.points,
+        wins: data.wins,
+        avatarUrl: data.profile?.avatar_url || null,
+        instagram: data.profile?.instagram || null,
+        verified: data.profile?.verified || false,
+        avatar: (data.profile?.display_name || "??").slice(0, 2).toUpperCase(),
+      }));
+  }, [monthlyRaw, eventsForMonthly]);
+
   // Dashboard announcement
   const { data: announcement } = useQuery({
     queryKey: ["dashboard-announcement"],
@@ -389,6 +445,7 @@ const Dashboard = () => {
               <TabsList className="mb-4">
                 <TabsTrigger value="geral">Ranking Geral</TabsTrigger>
                 <TabsTrigger value="evento">Por Evento</TabsTrigger>
+                <TabsTrigger value="mensal"><Crown className="h-3.5 w-3.5 mr-1" /> Do Mês</TabsTrigger>
               </TabsList>
               <TabsContent value="geral">
                 {rankingGeral.length === 0 ? (
@@ -419,6 +476,17 @@ const Dashboard = () => {
                       </div>
                     )}
                   </>
+                )}
+              </TabsContent>
+              <TabsContent value="mensal">
+                {rankingMensal.length === 0 ? (
+                  <p className="text-sm text-muted-foreground text-center py-6">Nenhum dado do ranking mensal ainda.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {rankingMensal.map((entry: any) => (
+                      <LeaderboardRow key={entry.rank} {...entry} />
+                    ))}
+                  </div>
                 )}
               </TabsContent>
             </Tabs>
