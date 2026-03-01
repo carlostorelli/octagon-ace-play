@@ -115,7 +115,7 @@ const Dashboard = () => {
 
   // Top 10 overall ranking
   const { data: rankingGeral = [] } = useQuery({
-    queryKey: ["leaderboard-geral-top10"],
+    queryKey: ["leaderboard-geral-top10-v2"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("leaderboard")
@@ -171,7 +171,7 @@ const Dashboard = () => {
   // Top 10 for latest completed event
   const latestEventId = completedEvents[0]?.id;
   const { data: rankingEvento = [] } = useQuery({
-    queryKey: ["leaderboard-evento-top10", latestEventId],
+    queryKey: ["leaderboard-evento-top10-v2", latestEventId],
     enabled: !!latestEventId,
     queryFn: async () => {
       const { data, error } = await supabase
