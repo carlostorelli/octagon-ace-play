@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { Save, Loader2, Camera, Instagram } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import UserBadges from "@/components/UserBadges";
 import AppLayout from "@/components/AppLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -136,7 +137,10 @@ const ProfilePage = () => {
                 />
               </div>
               <div>
-                <p className="font-display font-bold text-lg">{displayName || "Sem nome"}</p>
+                <p className="font-display font-bold text-lg flex items-center gap-1">
+                  {displayName || "Sem nome"}
+                  <UserBadges verified={(profile as any)?.verified} size="md" />
+                </p>
                 <p className="text-xs text-muted-foreground">{user.email}</p>
               </div>
             </div>
