@@ -87,28 +87,28 @@ const Dashboard = () => {
     queryKey: ["my-stats", user?.id],
     enabled: !!user?.id,
     queryFn: async () => {
-      // Get user's general leaderboard entry
-      const { data: myEntry } = await supabase
+      // Get full sorted leaderboard to determine real rank with tiebreakers
+      const { data: allEntries } = await supabase
         .from("leaderboard")
-        .select("points")
+        .select("user_id, points")
         .is("event_id", null)
-        .eq("user_id", user!.id)
-        .maybeSingle();
+        .order("points", { ascending: false })
+        .order("wins", { ascending: false })
+        .order("correct_methods", { ascending: false })
+        .order("correct_rounds", { ascending: false })
+        .order("main_event_winner", { ascending: false })
+        .order("main_event_method", { ascending: false })
+        .order("main_event_round", { ascending: false })
+        .order("fotn_correct", { ascending: false })
+        .order("potn_correct", { ascending: false })
+        .order("zebra_count", { ascending: false });
 
-      // Get rank by counting users with more points
-      let rank = "—";
-      if (myEntry) {
-        const { count } = await supabase
-          .from("leaderboard")
-          .select("id", { count: "exact", head: true })
-          .is("event_id", null)
-          .gt("points", myEntry.points);
-        rank = String((count ?? 0) + 1) + "º";
-      }
+      const myIndex = (allEntries ?? []).findIndex((e: any) => e.user_id === user!.id);
+      const myEntry = myIndex >= 0 ? allEntries![myIndex] : null;
 
       return {
         points: myEntry?.points ?? 0,
-        rank,
+        rank: myIndex >= 0 ? `${myIndex + 1}º` : "—",
       };
     },
   });
@@ -122,6 +122,15 @@ const Dashboard = () => {
         .select("*, profiles!inner(display_name, avatar_url, instagram)")
         .is("event_id", null)
         .order("points", { ascending: false })
+        .order("wins", { ascending: false })
+        .order("correct_methods", { ascending: false })
+        .order("correct_rounds", { ascending: false })
+        .order("main_event_winner", { ascending: false })
+        .order("main_event_method", { ascending: false })
+        .order("main_event_round", { ascending: false })
+        .order("fotn_correct", { ascending: false })
+        .order("potn_correct", { ascending: false })
+        .order("zebra_count", { ascending: false })
         .limit(10);
       if (error) throw error;
       return (data ?? []).map((entry: any, i: number) => ({
