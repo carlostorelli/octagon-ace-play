@@ -9,6 +9,13 @@ import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
+const MONTH_NAMES: Record<string, string> = {
+  "01": "Janeiro", "02": "Fevereiro", "03": "Março", "04": "Abril",
+  "05": "Maio", "06": "Junho", "07": "Julho", "08": "Agosto",
+  "09": "Setembro", "10": "Outubro", "11": "Novembro", "12": "Dezembro",
+};
 
 const StatCard = ({ icon: Icon, label, value, accent }: { icon: any; label: string; value: string; accent?: boolean }) => (
   <div className="glass-card rounded-xl p-5">
@@ -237,17 +244,31 @@ const Dashboard = () => {
     },
   });
 
+  const eventMonthMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const e of eventsForMonthly) map[e.id] = (e.date as string).slice(0, 7);
+    return map;
+  }, [eventsForMonthly]);
+
+  const availableMonths = useMemo(() => {
+    const months = new Set<string>();
+    for (const entry of monthlyRaw as any[]) {
+      const m = eventMonthMap[entry.event_id];
+      if (m) months.add(m);
+    }
+    return [...months].sort().reverse();
+  }, [monthlyRaw, eventMonthMap]);
+
+  const currentMonth = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`;
+  const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
+  const activeMonth = selectedMonth || (availableMonths.includes(currentMonth) ? currentMonth : availableMonths[0]) || null;
+
   const rankingMensal = useMemo(() => {
-    const eventMonthMap: Record<string, string> = {};
-    for (const e of eventsForMonthly) eventMonthMap[e.id] = (e.date as string).slice(0, 7);
-    
-    const now = new Date();
-    const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-    
+    if (!activeMonth) return [];
     const userAgg: Record<string, { points: number; wins: number; profile: any }> = {};
     for (const entry of monthlyRaw as any[]) {
       const month = eventMonthMap[entry.event_id];
-      if (month !== currentMonth) continue;
+      if (month !== activeMonth) continue;
       if (!userAgg[entry.user_id]) {
         userAgg[entry.user_id] = { points: 0, wins: 0, profile: entry.profiles };
       }
@@ -268,7 +289,7 @@ const Dashboard = () => {
         verified: data.profile?.verified || false,
         avatar: (data.profile?.display_name || "??").slice(0, 2).toUpperCase(),
       }));
-  }, [monthlyRaw, eventsForMonthly]);
+  }, [monthlyRaw, eventMonthMap, activeMonth]);
 
   // Dashboard announcement
   const { data: announcement } = useQuery({
@@ -479,6 +500,23 @@ const Dashboard = () => {
                 )}
               </TabsContent>
               <TabsContent value="mensal">
+                {availableMonths.length > 0 && (
+                  <Select value={activeMonth ?? ""} onValueChange={setSelectedMonth}>
+                    <SelectTrigger className="w-full sm:w-[220px] mb-3">
+                      <SelectValue placeholder="Selecionar mês" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableMonths.map((m) => {
+                        const [year, month] = m.split("-");
+                        return (
+                          <SelectItem key={m} value={m}>
+                            {MONTH_NAMES[month] || month} {year}
+                          </SelectItem>
+                        );
+                      })}
+                    </SelectContent>
+                  </Select>
+                )}
                 {rankingMensal.length === 0 ? (
                   <p className="text-sm text-muted-foreground text-center py-6">Nenhum dado do ranking mensal ainda.</p>
                 ) : (
