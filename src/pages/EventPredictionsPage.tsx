@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Swords, Check, Loader2, FileText, Download, Trophy, Lock, Clock, Pencil, ArrowLeft, Play, Target } from "lucide-react";
+import { Swords, Check, Loader2, FileText, Download, Trophy, Lock, Clock, Pencil, ArrowLeft, Play, Target, AlertTriangle } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Button } from "@/components/ui/button";
@@ -25,6 +26,7 @@ const EventPredictionsPage = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [isEditing, setIsEditing] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
 
   const { data: event } = useQuery({
     queryKey: ["event", eventId],
@@ -136,10 +138,8 @@ const EventPredictionsPage = () => {
   const mainFights = fights.filter((f: any) => f.card_type === "main");
   const prelimFights = fights.filter((f: any) => f.card_type === "prelim");
 
-  // When locked: only show summary (read-only). Never allow editing.
-  const showFightCards = isLocked
-    ? (!hasSavedPredictions) // show cards read-only only if no predictions saved
-    : (!hasSavedPredictions || isEditing);
+  // Once predictions are saved, always show summary (no editing allowed)
+  const showFightCards = !hasSavedPredictions;
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -277,11 +277,7 @@ const EventPredictionsPage = () => {
                     <Check className="h-4 w-4 text-accent" />
                     <span className="font-display text-sm font-bold uppercase tracking-wider text-accent">Meus Palpites</span>
                   </div>
-                  {!isLocked && (
-                    <Button variant="outline" size="sm" className="gap-2" onClick={() => setIsEditing(true)}>
-                      <Pencil className="h-3.5 w-3.5" /> Editar
-                    </Button>
-                  )}
+                  {/* Palpites não podem ser alterados após o envio */}
                 </div>
                 <div className="glass-card rounded-xl divide-y divide-border overflow-hidden">
                   {fights.map((fight: any) => {
@@ -304,11 +300,9 @@ const EventPredictionsPage = () => {
                     );
                   })}
                 </div>
-                {isLocked && (
-                  <p className="text-xs text-muted-foreground flex items-center gap-1.5">
-                    <Lock className="h-3 w-3" /> Seus palpites estão trancados e não podem mais ser alterados.
-                  </p>
-                )}
+                <p className="text-xs text-muted-foreground flex items-center gap-1.5">
+                  <Lock className="h-3 w-3" /> Seus palpites foram enviados e não podem mais ser alterados.
+                </p>
               </div>
             </TabsContent>
 
@@ -395,11 +389,34 @@ const EventPredictionsPage = () => {
                 )}
                 <Button size="lg"
                   className="bg-primary hover:bg-primary/90 text-primary-foreground font-display uppercase tracking-wider text-base px-10 glow shadow-2xl"
-                  onClick={() => saveMutation.mutate()} disabled={saveMutation.isPending}>
+                  onClick={() => setShowConfirm(true)} disabled={saveMutation.isPending}>
                   {saveMutation.isPending ? "Salvando..." : `Salvar ${totalPredictions} Palpite${totalPredictions > 1 ? "s" : ""}`}
                 </Button>
               </motion.div>
             )}
+
+            <AlertDialog open={showConfirm} onOpenChange={setShowConfirm}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <div className="flex items-center gap-2 mb-1">
+                    <AlertTriangle className="h-5 w-5 text-amber-500" />
+                    <AlertDialogTitle className="font-display uppercase">Confirmar Palpites</AlertDialogTitle>
+                  </div>
+                  <AlertDialogDescription className="text-sm leading-relaxed">
+                    Tem certeza que deseja enviar seus palpites? <strong>Uma vez enviados, eles não poderão ser alterados.</strong> Revise suas escolhas antes de confirmar.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Voltar e Revisar</AlertDialogCancel>
+                  <AlertDialogAction
+                    className="bg-primary hover:bg-primary/90 text-primary-foreground font-display uppercase"
+                    onClick={() => saveMutation.mutate()}
+                  >
+                    Confirmar Palpites
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </>
         )}
       </div>
