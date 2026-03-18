@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Trophy, Medal, TrendingUp, Loader2, Instagram, Crown } from "lucide-react";
+import { Trophy, Medal, TrendingUp, TrendingDown, Minus, Loader2, Instagram, Crown, ChevronUp, ChevronDown } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import AppLayout from "@/components/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
@@ -25,6 +25,8 @@ interface RankedEntry {
   instagram: string | null;
   verified: boolean;
   avatar: string;
+  userId: string;
+  change: number | null; // positive = moved up, negative = moved down, null = new entry
 }
 
 const mapEntries = (data: any[]): RankedEntry[] =>
@@ -37,7 +39,25 @@ const mapEntries = (data: any[]): RankedEntry[] =>
     instagram: (entry.profiles as any)?.instagram || null,
     verified: (entry.profiles as any)?.verified || false,
     avatar: ((entry.profiles as any)?.display_name || "??").slice(0, 2).toUpperCase(),
+    userId: entry.user_id,
+    change: null,
   }));
+
+const PositionChange = ({ change }: { change: number | null }) => {
+  if (change === null || change === 0) return null;
+  if (change > 0) return (
+    <span className="inline-flex items-center gap-0.5 text-xs font-bold text-emerald-400">
+      <ChevronUp className="h-3.5 w-3.5" />
+      {change}
+    </span>
+  );
+  return (
+    <span className="inline-flex items-center gap-0.5 text-xs font-bold text-red-400">
+      <ChevronDown className="h-3.5 w-3.5" />
+      {Math.abs(change)}
+    </span>
+  );
+};
 
 const LEADERBOARD_ORDER = [
   { column: "points", ascending: false },
@@ -75,7 +95,10 @@ const Podium = ({ data }: { data: RankedEntry[] }) => {
                 <img src={e.avatarUrl} alt={e.user} className="h-full w-full object-cover" />
               ) : isFirst ? <Trophy className="h-7 w-7" /> : <Medal className="h-6 w-6" />}
             </div>
-            <div className="font-display text-xl sm:text-2xl font-bold">{e.rank}º</div>
+            <div className="font-display text-xl sm:text-2xl font-bold flex items-center justify-center gap-1">
+              {e.rank}º
+              <PositionChange change={e.change} />
+            </div>
             <div className="font-semibold mt-1 text-xs sm:text-sm truncate max-w-full flex items-center justify-center gap-1">
               {e.user}
               <UserBadges verified={e.verified} rank={e.rank} />
@@ -106,11 +129,14 @@ const RankingTable = ({ data }: { data: RankedEntry[] }) => (
           className="flex items-center justify-between px-6 py-4 hover:bg-secondary/30 transition-colors"
         >
           <div className="flex items-center gap-4">
-            <span className={`font-display text-lg font-bold w-8 text-center ${
-              entry.rank === 1 ? "text-accent" : entry.rank <= 3 ? "text-primary" : "text-muted-foreground"
-            }`}>
-              {entry.rank}
-            </span>
+            <div className="flex flex-col items-center w-8">
+              <span className={`font-display text-lg font-bold text-center ${
+                entry.rank === 1 ? "text-accent" : entry.rank <= 3 ? "text-primary" : "text-muted-foreground"
+              }`}>
+                {entry.rank}
+              </span>
+              <PositionChange change={entry.change} />
+            </div>
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary text-sm font-bold overflow-hidden">
               {entry.avatarUrl ? (
                 <img src={entry.avatarUrl} alt={entry.user} className="h-full w-full object-cover" />
@@ -172,7 +198,64 @@ const LeaderboardPage = () => {
       for (const o of LEADERBOARD_ORDER) q = q.order(o.column, { ascending: o.ascending });
       const { data, error } = await q.limit(1000);
       if (error) throw error;
-      return mapEntries(data ?? []);
+      const entries = mapEntries(data ?? []);
+
+      // Calculate position changes: compare with ranking without the latest event
+      // Fetch the latest event with leaderboard data
+      const { data: latestEventRows } = await supabase
+        .from("leaderboard")
+        .select("event_id, events!inner(date)")
+        .not("event_id", "is", null)
+        .eq("season", season)
+        .order("events(date)", { ascending: false })
+        .limit(1);
+
+      if (latestEventRows && latestEventRows.length > 0) {
+        const latestEventId = latestEventRows[0].event_id;
+        // Fetch per-event scores for the latest event
+        const { data: eventScores } = await supabase
+          .from("leaderboard")
+          .select("user_id, points, wins")
+          .eq("event_id", latestEventId)
+          .eq("season", season);
+
+        if (eventScores && eventScores.length > 0) {
+          const eventScoreMap: Record<string, { points: number; wins: number }> = {};
+          for (const es of eventScores) {
+            eventScoreMap[es.user_id] = { points: es.points, wins: es.wins };
+          }
+
+          // Calculate previous ranking by subtracting latest event scores
+          const previousEntries = entries
+            .map((e) => {
+              const eventScore = eventScoreMap[e.userId];
+              return {
+                userId: e.userId,
+                points: e.points - (eventScore?.points ?? 0),
+                wins: e.wins - (eventScore?.wins ?? 0),
+              };
+            })
+            .filter((e) => e.points > 0 || e.wins > 0)
+            .sort((a, b) => b.points - a.points || b.wins - a.wins);
+
+          const previousRankMap: Record<string, number> = {};
+          previousEntries.forEach((e, i) => {
+            previousRankMap[e.userId] = i + 1;
+          });
+
+          // Set change on each entry
+          for (const entry of entries) {
+            const prevRank = previousRankMap[entry.userId];
+            if (prevRank === undefined) {
+              entry.change = null; // new entry (first event)
+            } else {
+              entry.change = prevRank - entry.rank; // positive = moved up
+            }
+          }
+        }
+      }
+
+      return entries;
     },
   });
 
@@ -270,7 +353,7 @@ const LeaderboardPage = () => {
     for (const [month, users] of Object.entries(byMonth)) {
       const sorted = Object.entries(users)
         .sort((a, b) => b[1].points - a[1].points || b[1].wins - a[1].wins)
-        .map(([, data], i) => ({
+        .map(([userId, data], i) => ({
           rank: i + 1,
           user: data.profile?.display_name || "Anônimo",
           points: data.points,
@@ -279,6 +362,8 @@ const LeaderboardPage = () => {
           instagram: data.profile?.instagram || null,
           verified: data.profile?.verified || false,
           avatar: (data.profile?.display_name || "??").slice(0, 2).toUpperCase(),
+          userId: userId,
+          change: null,
         }));
       result[month] = sorted;
     }
