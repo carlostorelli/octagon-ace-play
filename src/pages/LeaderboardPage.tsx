@@ -95,7 +95,10 @@ const Podium = ({ data }: { data: RankedEntry[] }) => {
                 <img src={e.avatarUrl} alt={e.user} className="h-full w-full object-cover" />
               ) : isFirst ? <Trophy className="h-7 w-7" /> : <Medal className="h-6 w-6" />}
             </div>
-            <div className="font-display text-xl sm:text-2xl font-bold">{e.rank}º</div>
+            <div className="font-display text-xl sm:text-2xl font-bold flex items-center justify-center gap-1">
+              {e.rank}º
+              <PositionChange change={e.change} />
+            </div>
             <div className="font-semibold mt-1 text-xs sm:text-sm truncate max-w-full flex items-center justify-center gap-1">
               {e.user}
               <UserBadges verified={e.verified} rank={e.rank} />
