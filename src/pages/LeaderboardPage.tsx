@@ -39,7 +39,25 @@ const mapEntries = (data: any[]): RankedEntry[] =>
     instagram: (entry.profiles as any)?.instagram || null,
     verified: (entry.profiles as any)?.verified || false,
     avatar: ((entry.profiles as any)?.display_name || "??").slice(0, 2).toUpperCase(),
+    userId: entry.user_id,
+    change: null,
   }));
+
+const PositionChange = ({ change }: { change: number | null }) => {
+  if (change === null || change === 0) return null;
+  if (change > 0) return (
+    <span className="inline-flex items-center gap-0.5 text-xs font-bold text-emerald-400">
+      <ChevronUp className="h-3.5 w-3.5" />
+      {change}
+    </span>
+  );
+  return (
+    <span className="inline-flex items-center gap-0.5 text-xs font-bold text-red-400">
+      <ChevronDown className="h-3.5 w-3.5" />
+      {Math.abs(change)}
+    </span>
+  );
+};
 
 const LEADERBOARD_ORDER = [
   { column: "points", ascending: false },
