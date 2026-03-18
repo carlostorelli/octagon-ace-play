@@ -51,12 +51,15 @@ const PredictionsPage = () => {
   });
 
   const debouncedSearch = useDebounce(search, 250);
-  const filtered = events.filter(
-    (e) =>
-      e.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-      e.main_event.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-      e.location.toLowerCase().includes(debouncedSearch.toLowerCase())
-  );
+  const statusOrder = (s: string) => (s === "live" ? 0 : s === "upcoming" ? 1 : 2);
+  const filtered = events
+    .filter(
+      (e) =>
+        e.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+        e.main_event.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+        e.location.toLowerCase().includes(debouncedSearch.toLowerCase())
+    )
+    .sort((a, b) => statusOrder(a.status) - statusOrder(b.status) || new Date(b.date).getTime() - new Date(a.date).getTime());
 
   const getPredictionStatus = (event: any) => {
     if (event.status === "completed") {
