@@ -201,14 +201,26 @@ const LeaderboardPage = () => {
       const entries = mapEntries(data ?? []);
 
       // Calculate position changes: compare with ranking without the latest event
-      // Fetch the latest event with leaderboard data
-      const { data: latestEventRows } = await supabase
+      // Fetch all event IDs with leaderboard data, then find the latest by event date
+      const { data: eventIdsRows } = await supabase
         .from("leaderboard")
-        .select("event_id, events!inner(date)")
+        .select("event_id")
         .not("event_id", "is", null)
-        .eq("season", season)
-        .order("events(date)", { ascending: false })
-        .limit(1);
+        .eq("season", season);
+
+      let latestEventRows: { event_id: string }[] = [];
+      if (eventIdsRows && eventIdsRows.length > 0) {
+        const uniqueEventIds = [...new Set(eventIdsRows.map((r: any) => r.event_id))];
+        const { data: eventsData } = await supabase
+          .from("events")
+          .select("id, date")
+          .in("id", uniqueEventIds)
+          .order("date", { ascending: false })
+          .limit(1);
+        if (eventsData && eventsData.length > 0) {
+          latestEventRows = [{ event_id: eventsData[0].id }];
+        }
+      }
 
       if (latestEventRows && latestEventRows.length > 0) {
         const latestEventId = latestEventRows[0].event_id;
