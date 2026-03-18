@@ -129,11 +129,14 @@ const RankingTable = ({ data }: { data: RankedEntry[] }) => (
           className="flex items-center justify-between px-6 py-4 hover:bg-secondary/30 transition-colors"
         >
           <div className="flex items-center gap-4">
-            <span className={`font-display text-lg font-bold w-8 text-center ${
-              entry.rank === 1 ? "text-accent" : entry.rank <= 3 ? "text-primary" : "text-muted-foreground"
-            }`}>
-              {entry.rank}
-            </span>
+            <div className="flex flex-col items-center w-8">
+              <span className={`font-display text-lg font-bold text-center ${
+                entry.rank === 1 ? "text-accent" : entry.rank <= 3 ? "text-primary" : "text-muted-foreground"
+              }`}>
+                {entry.rank}
+              </span>
+              <PositionChange change={entry.change} />
+            </div>
             <div className="flex h-10 w-10 items-center justify-center rounded-full bg-secondary text-sm font-bold overflow-hidden">
               {entry.avatarUrl ? (
                 <img src={entry.avatarUrl} alt={entry.user} className="h-full w-full object-cover" />
