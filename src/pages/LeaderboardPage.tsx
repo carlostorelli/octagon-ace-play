@@ -353,7 +353,7 @@ const LeaderboardPage = () => {
     for (const [month, users] of Object.entries(byMonth)) {
       const sorted = Object.entries(users)
         .sort((a, b) => b[1].points - a[1].points || b[1].wins - a[1].wins)
-        .map(([, data], i) => ({
+        .map(([userId, data], i) => ({
           rank: i + 1,
           user: data.profile?.display_name || "Anônimo",
           points: data.points,
@@ -362,6 +362,8 @@ const LeaderboardPage = () => {
           instagram: data.profile?.instagram || null,
           verified: data.profile?.verified || false,
           avatar: (data.profile?.display_name || "??").slice(0, 2).toUpperCase(),
+          userId: userId,
+          change: null,
         }));
       result[month] = sorted;
     }
