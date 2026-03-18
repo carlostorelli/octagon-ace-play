@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Calendar, Users, Trophy, Swords, TrendingUp, Loader2, LogOut, ArrowRight, Clock, MapPin, Lock, Instagram, Megaphone, X, Crown } from "lucide-react";
+import { Calendar, Users, Trophy, Swords, TrendingUp, Loader2, LogOut, ArrowRight, Clock, MapPin, Lock, Instagram, Megaphone, X, Crown, ChevronUp, ChevronDown } from "lucide-react";
 import UserBadges from "@/components/UserBadges";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, Link } from "react-router-dom";
@@ -29,12 +29,31 @@ const StatCard = ({ icon: Icon, label, value, accent }: { icon: any; label: stri
   </div>
 );
 
-const LeaderboardRow = ({ rank, user, points, wins, avatar, avatarUrl, instagram, verified }: { rank: number; user: string; points: number; wins: number; avatar: string; avatarUrl?: string | null; instagram?: string | null; verified?: boolean }) => (
+const PositionChange = ({ change }: { change: number | null | undefined }) => {
+  if (change === null || change === undefined || change === 0) return null;
+  if (change > 0) return (
+    <span className="inline-flex items-center gap-0.5 text-xs font-bold text-emerald-400">
+      <ChevronUp className="h-3.5 w-3.5" />
+      {change}
+    </span>
+  );
+  return (
+    <span className="inline-flex items-center gap-0.5 text-xs font-bold text-red-400">
+      <ChevronDown className="h-3.5 w-3.5" />
+      {Math.abs(change)}
+    </span>
+  );
+};
+
+const LeaderboardRow = ({ rank, user, points, wins, avatar, avatarUrl, instagram, verified, change }: { rank: number; user: string; points: number; wins: number; avatar: string; avatarUrl?: string | null; instagram?: string | null; verified?: boolean; change?: number | null }) => (
   <div className={`flex items-center justify-between rounded-lg px-4 py-3 ${rank <= 3 ? "bg-primary/5 border border-primary/10" : "bg-secondary/50"}`}>
     <div className="flex items-center gap-4">
-      <span className={`font-display text-lg font-bold w-6 text-center ${rank === 1 ? "text-accent" : rank <= 3 ? "text-primary" : "text-muted-foreground"}`}>
-        {rank}
-      </span>
+      <div className="flex flex-col items-center w-6">
+        <span className={`font-display text-lg font-bold text-center ${rank === 1 ? "text-accent" : rank <= 3 ? "text-primary" : "text-muted-foreground"}`}>
+          {rank}
+        </span>
+        <PositionChange change={change} />
+      </div>
       <div className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary text-sm font-semibold overflow-hidden">
         {avatarUrl ? (
           <img src={avatarUrl} alt={user} className="h-full w-full object-cover" />
@@ -127,9 +146,9 @@ const Dashboard = () => {
     },
   });
 
-  // Top 10 overall ranking
+  // Top 10 overall ranking with position changes
   const { data: rankingGeral = [] } = useQuery({
-    queryKey: ["leaderboard-geral-top10-v3", CURRENT_SEASON],
+    queryKey: ["leaderboard-geral-top10-v4", CURRENT_SEASON],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("leaderboard")
@@ -146,9 +165,10 @@ const Dashboard = () => {
         .order("fotn_correct", { ascending: false })
         .order("potn_correct", { ascending: false })
         .order("zebra_count", { ascending: false })
-        .limit(10);
+        .limit(1000);
       if (error) throw error;
-      return (data ?? []).map((entry: any, i: number) => ({
+
+      const allEntries = (data ?? []).map((entry: any, i: number) => ({
         rank: i + 1,
         user: entry.profiles?.display_name || "Anônimo",
         points: entry.points,
@@ -157,7 +177,59 @@ const Dashboard = () => {
         instagram: entry.profiles?.instagram || null,
         verified: entry.profiles?.verified || false,
         avatar: (entry.profiles?.display_name || "??").slice(0, 2).toUpperCase(),
+        userId: entry.user_id,
+        change: null as number | null,
       }));
+
+      // Calculate position changes based on latest event
+      const { data: eventIdsRows } = await supabase
+        .from("leaderboard")
+        .select("event_id")
+        .not("event_id", "is", null)
+        .eq("season", CURRENT_SEASON);
+
+      if (eventIdsRows && eventIdsRows.length > 0) {
+        const uniqueEventIds = [...new Set(eventIdsRows.map((r: any) => r.event_id))];
+        const { data: eventsData } = await supabase
+          .from("events")
+          .select("id, date")
+          .in("id", uniqueEventIds)
+          .order("date", { ascending: false })
+          .limit(1);
+
+        if (eventsData && eventsData.length > 0) {
+          const latestEvId = eventsData[0].id;
+          const { data: eventScores } = await supabase
+            .from("leaderboard")
+            .select("user_id, points, wins")
+            .eq("event_id", latestEvId)
+            .eq("season", CURRENT_SEASON);
+
+          if (eventScores && eventScores.length > 0) {
+            const esMap: Record<string, { points: number; wins: number }> = {};
+            for (const es of eventScores) esMap[es.user_id] = { points: es.points, wins: es.wins };
+
+            const prev = allEntries
+              .map((e) => ({
+                userId: e.userId,
+                points: e.points - (esMap[e.userId]?.points ?? 0),
+                wins: e.wins - (esMap[e.userId]?.wins ?? 0),
+              }))
+              .filter((e) => e.points > 0 || e.wins > 0)
+              .sort((a, b) => b.points - a.points || b.wins - a.wins);
+
+            const prevRankMap: Record<string, number> = {};
+            prev.forEach((e, i) => { prevRankMap[e.userId] = i + 1; });
+
+            for (const entry of allEntries) {
+              const prevRank = prevRankMap[entry.userId];
+              entry.change = prevRank === undefined ? null : prevRank - entry.rank;
+            }
+          }
+        }
+      }
+
+      return allEntries.slice(0, 10);
     },
   });
 
