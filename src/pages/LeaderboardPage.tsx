@@ -1,6 +1,6 @@
 import { useState, useMemo } from "react";
 import { motion } from "framer-motion";
-import { Trophy, Medal, TrendingUp, Loader2, Instagram, Crown } from "lucide-react";
+import { Trophy, Medal, TrendingUp, TrendingDown, Minus, Loader2, Instagram, Crown, ChevronUp, ChevronDown } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import AppLayout from "@/components/AppLayout";
 import { supabase } from "@/integrations/supabase/client";
