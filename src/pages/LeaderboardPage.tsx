@@ -25,6 +25,8 @@ interface RankedEntry {
   instagram: string | null;
   verified: boolean;
   avatar: string;
+  userId: string;
+  change: number | null; // positive = moved up, negative = moved down, null = new entry
 }
 
 const mapEntries = (data: any[]): RankedEntry[] =>
