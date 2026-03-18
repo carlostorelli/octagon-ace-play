@@ -198,7 +198,64 @@ const LeaderboardPage = () => {
       for (const o of LEADERBOARD_ORDER) q = q.order(o.column, { ascending: o.ascending });
       const { data, error } = await q.limit(1000);
       if (error) throw error;
-      return mapEntries(data ?? []);
+      const entries = mapEntries(data ?? []);
+
+      // Calculate position changes: compare with ranking without the latest event
+      // Fetch the latest event with leaderboard data
+      const { data: latestEventRows } = await supabase
+        .from("leaderboard")
+        .select("event_id, events!inner(date)")
+        .not("event_id", "is", null)
+        .eq("season", season)
+        .order("events(date)", { ascending: false })
+        .limit(1);
+
+      if (latestEventRows && latestEventRows.length > 0) {
+        const latestEventId = latestEventRows[0].event_id;
+        // Fetch per-event scores for the latest event
+        const { data: eventScores } = await supabase
+          .from("leaderboard")
+          .select("user_id, points, wins")
+          .eq("event_id", latestEventId)
+          .eq("season", season);
+
+        if (eventScores && eventScores.length > 0) {
+          const eventScoreMap: Record<string, { points: number; wins: number }> = {};
+          for (const es of eventScores) {
+            eventScoreMap[es.user_id] = { points: es.points, wins: es.wins };
+          }
+
+          // Calculate previous ranking by subtracting latest event scores
+          const previousEntries = entries
+            .map((e) => {
+              const eventScore = eventScoreMap[e.userId];
+              return {
+                userId: e.userId,
+                points: e.points - (eventScore?.points ?? 0),
+                wins: e.wins - (eventScore?.wins ?? 0),
+              };
+            })
+            .filter((e) => e.points > 0 || e.wins > 0)
+            .sort((a, b) => b.points - a.points || b.wins - a.wins);
+
+          const previousRankMap: Record<string, number> = {};
+          previousEntries.forEach((e, i) => {
+            previousRankMap[e.userId] = i + 1;
+          });
+
+          // Set change on each entry
+          for (const entry of entries) {
+            const prevRank = previousRankMap[entry.userId];
+            if (prevRank === undefined) {
+              entry.change = null; // new entry (first event)
+            } else {
+              entry.change = prevRank - entry.rank; // positive = moved up
+            }
+          }
+        }
+      }
+
+      return entries;
     },
   });
 
