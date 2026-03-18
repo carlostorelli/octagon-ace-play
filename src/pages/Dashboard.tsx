@@ -29,12 +29,31 @@ const StatCard = ({ icon: Icon, label, value, accent }: { icon: any; label: stri
   </div>
 );
 
-const LeaderboardRow = ({ rank, user, points, wins, avatar, avatarUrl, instagram, verified }: { rank: number; user: string; points: number; wins: number; avatar: string; avatarUrl?: string | null; instagram?: string | null; verified?: boolean }) => (
+const PositionChange = ({ change }: { change: number | null | undefined }) => {
+  if (change === null || change === undefined || change === 0) return null;
+  if (change > 0) return (
+    <span className="inline-flex items-center gap-0.5 text-xs font-bold text-emerald-400">
+      <ChevronUp className="h-3.5 w-3.5" />
+      {change}
+    </span>
+  );
+  return (
+    <span className="inline-flex items-center gap-0.5 text-xs font-bold text-red-400">
+      <ChevronDown className="h-3.5 w-3.5" />
+      {Math.abs(change)}
+    </span>
+  );
+};
+
+const LeaderboardRow = ({ rank, user, points, wins, avatar, avatarUrl, instagram, verified, change }: { rank: number; user: string; points: number; wins: number; avatar: string; avatarUrl?: string | null; instagram?: string | null; verified?: boolean; change?: number | null }) => (
   <div className={`flex items-center justify-between rounded-lg px-4 py-3 ${rank <= 3 ? "bg-primary/5 border border-primary/10" : "bg-secondary/50"}`}>
     <div className="flex items-center gap-4">
-      <span className={`font-display text-lg font-bold w-6 text-center ${rank === 1 ? "text-accent" : rank <= 3 ? "text-primary" : "text-muted-foreground"}`}>
-        {rank}
-      </span>
+      <div className="flex flex-col items-center w-6">
+        <span className={`font-display text-lg font-bold text-center ${rank === 1 ? "text-accent" : rank <= 3 ? "text-primary" : "text-muted-foreground"}`}>
+          {rank}
+        </span>
+        <PositionChange change={change} />
+      </div>
       <div className="flex h-9 w-9 items-center justify-center rounded-full bg-secondary text-sm font-semibold overflow-hidden">
         {avatarUrl ? (
           <img src={avatarUrl} alt={user} className="h-full w-full object-cover" />
