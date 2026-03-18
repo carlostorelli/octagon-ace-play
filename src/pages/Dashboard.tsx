@@ -232,7 +232,6 @@ const Dashboard = () => {
       return allEntries.slice(0, 10);
     },
   });
-  });
 
   // Events that have leaderboard data (completed or with results)
   const { data: completedEvents = [] } = useQuery({
