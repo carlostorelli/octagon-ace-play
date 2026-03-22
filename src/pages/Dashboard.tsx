@@ -279,16 +279,18 @@ const Dashboard = () => {
     },
   });
 
-  // Top 10 for latest completed event
-  const latestEventId = completedEvents[0]?.id;
+  // Event ranking with selector
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+  const activeEventId = selectedEventId || completedEvents[0]?.id || null;
+
   const { data: rankingEvento = [] } = useQuery({
-    queryKey: ["leaderboard-evento-top10-v3", latestEventId],
-    enabled: !!latestEventId,
+    queryKey: ["leaderboard-evento-top10-v5", activeEventId],
+    enabled: !!activeEventId,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("leaderboard")
         .select("*, profiles!inner(display_name, avatar_url, instagram, verified)")
-        .eq("event_id", latestEventId!)
+        .eq("event_id", activeEventId!)
         .eq("season", CURRENT_SEASON)
         .order("points", { ascending: false })
         .order("wins", { ascending: false })
@@ -578,9 +580,16 @@ const Dashboard = () => {
                   <p className="text-sm text-muted-foreground text-center py-6">Nenhum evento concluído ainda.</p>
                 ) : (
                   <>
-                    <p className="text-xs text-muted-foreground mb-3">
-                      Último evento: <span className="font-semibold text-foreground">{completedEvents[0]?.name}</span>
-                    </p>
+                    <Select value={activeEventId ?? ""} onValueChange={setSelectedEventId}>
+                      <SelectTrigger className="w-full sm:w-[300px] mb-3">
+                        <SelectValue placeholder="Selecionar evento" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {completedEvents.map((e: any) => (
+                          <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     {rankingEvento.length === 0 ? (
                       <p className="text-sm text-muted-foreground text-center py-6">Nenhum dado de ranking para este evento.</p>
                     ) : (
