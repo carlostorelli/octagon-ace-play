@@ -317,13 +317,13 @@ const Dashboard = () => {
     },
   });
 
-  // Monthly ranking: fetch per-event entries + event dates for current season
+  // Monthly ranking: fetch per-event entries with updated_at for current season
   const { data: monthlyRaw = [] } = useQuery({
     queryKey: ["dashboard-monthly-raw", CURRENT_SEASON],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("leaderboard")
-        .select("user_id, points, wins, event_id, profiles!inner(display_name, avatar_url, instagram, verified)")
+        .select("user_id, points, wins, correct_methods, correct_rounds, main_event_winner, main_event_method, main_event_round, fotn_correct, potn_correct, zebra_count, event_id, updated_at, profiles!inner(display_name, avatar_url, instagram, verified)")
         .not("event_id", "is", null)
         .eq("season", CURRENT_SEASON);
       if (error) throw error;
@@ -331,29 +331,14 @@ const Dashboard = () => {
     },
   });
 
-  const { data: eventsForMonthly = [] } = useQuery({
-    queryKey: ["dashboard-events-dates"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("events").select("id, date");
-      if (error) throw error;
-      return data ?? [];
-    },
-  });
-
-  const eventMonthMap = useMemo(() => {
-    const map: Record<string, string> = {};
-    for (const e of eventsForMonthly) map[e.id] = (e.date as string).slice(0, 7);
-    return map;
-  }, [eventsForMonthly]);
-
   const availableMonths = useMemo(() => {
     const months = new Set<string>();
     for (const entry of monthlyRaw as any[]) {
-      const m = eventMonthMap[entry.event_id];
+      const m = (entry.updated_at as string).slice(0, 7);
       if (m) months.add(m);
     }
     return [...months].sort().reverse();
-  }, [monthlyRaw, eventMonthMap]);
+  }, [monthlyRaw]);
 
   const currentMonth = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, "0")}`;
   const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
@@ -361,19 +346,47 @@ const Dashboard = () => {
 
   const rankingMensal = useMemo(() => {
     if (!activeMonth) return [];
-    const userAgg: Record<string, { points: number; wins: number; profile: any }> = {};
+    const userAgg: Record<string, {
+      points: number; wins: number; correct_methods: number; correct_rounds: number;
+      main_event_winner: number; main_event_method: number; main_event_round: number;
+      fotn_correct: number; potn_correct: number; zebra_count: number; profile: any;
+    }> = {};
     for (const entry of monthlyRaw as any[]) {
-      const month = eventMonthMap[entry.event_id];
+      const month = (entry.updated_at as string).slice(0, 7);
       if (month !== activeMonth) continue;
       if (!userAgg[entry.user_id]) {
-        userAgg[entry.user_id] = { points: 0, wins: 0, profile: entry.profiles };
+        userAgg[entry.user_id] = {
+          points: 0, wins: 0, correct_methods: 0, correct_rounds: 0,
+          main_event_winner: 0, main_event_method: 0, main_event_round: 0,
+          fotn_correct: 0, potn_correct: 0, zebra_count: 0, profile: entry.profiles,
+        };
       }
-      userAgg[entry.user_id].points += entry.points;
-      userAgg[entry.user_id].wins += entry.wins;
+      const u = userAgg[entry.user_id];
+      u.points += entry.points;
+      u.wins += entry.wins;
+      u.correct_methods += entry.correct_methods ?? 0;
+      u.correct_rounds += entry.correct_rounds ?? 0;
+      u.main_event_winner += entry.main_event_winner ? 1 : 0;
+      u.main_event_method += entry.main_event_method ? 1 : 0;
+      u.main_event_round += entry.main_event_round ? 1 : 0;
+      u.fotn_correct += entry.fotn_correct ? 1 : 0;
+      u.potn_correct += entry.potn_correct ? 1 : 0;
+      u.zebra_count += entry.zebra_count ?? 0;
     }
 
     return Object.entries(userAgg)
-      .sort((a, b) => b[1].points - a[1].points || b[1].wins - a[1].wins)
+      .sort((a, b) =>
+        (b[1].points - a[1].points) ||
+        (b[1].wins - a[1].wins) ||
+        (b[1].correct_methods - a[1].correct_methods) ||
+        (b[1].correct_rounds - a[1].correct_rounds) ||
+        (b[1].main_event_winner - a[1].main_event_winner) ||
+        (b[1].main_event_method - a[1].main_event_method) ||
+        (b[1].main_event_round - a[1].main_event_round) ||
+        (b[1].fotn_correct - a[1].fotn_correct) ||
+        (b[1].potn_correct - a[1].potn_correct) ||
+        (b[1].zebra_count - a[1].zebra_count)
+      )
       .slice(0, 10)
       .map(([, data], i) => ({
         rank: i + 1,
@@ -385,7 +398,7 @@ const Dashboard = () => {
         verified: data.profile?.verified || false,
         avatar: (data.profile?.display_name || "??").slice(0, 2).toUpperCase(),
       }));
-  }, [monthlyRaw, eventMonthMap, activeMonth]);
+  }, [monthlyRaw, activeMonth]);
 
   // Dashboard announcement
   const { data: announcement } = useQuery({
