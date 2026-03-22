@@ -232,23 +232,52 @@ const LeaderboardPage = () => {
           .eq("season", season);
 
         if (eventScores && eventScores.length > 0) {
-          const eventScoreMap: Record<string, { points: number; wins: number }> = {};
-          for (const es of eventScores) {
-            eventScoreMap[es.user_id] = { points: es.points, wins: es.wins };
-          }
+          // Fetch full event scores with all tiebreaker fields
+          const { data: fullEventScores } = await supabase
+            .from("leaderboard")
+            .select("user_id, points, wins, correct_methods, correct_rounds, main_event_winner, main_event_method, main_event_round, fotn_correct, potn_correct, zebra_count")
+            .eq("event_id", latestEventId)
+            .eq("season", season);
 
-          // Calculate previous ranking by subtracting latest event scores
+          const fullEsMap: Record<string, any> = {};
+          for (const es of (fullEventScores ?? [])) fullEsMap[es.user_id] = es;
+
+          // Build map of full current data for tiebreaker fields
+          const fullDataMap: Record<string, any> = {};
+          for (const d of (data ?? [])) fullDataMap[d.user_id] = d;
+
+          // Calculate previous ranking by subtracting all fields
           const previousEntries = entries
             .map((e) => {
-              const eventScore = eventScoreMap[e.userId];
+              const full = fullDataMap[e.userId] || {};
+              const evs = fullEsMap[e.userId] || {};
               return {
                 userId: e.userId,
-                points: e.points - (eventScore?.points ?? 0),
-                wins: e.wins - (eventScore?.wins ?? 0),
+                points: e.points - (evs.points ?? 0),
+                wins: e.wins - (evs.wins ?? 0),
+                correct_methods: (full.correct_methods ?? 0) - (evs.correct_methods ?? 0),
+                correct_rounds: (full.correct_rounds ?? 0) - (evs.correct_rounds ?? 0),
+                main_event_winner: (full.main_event_winner ? 1 : 0) - (evs.main_event_winner ? 1 : 0),
+                main_event_method: (full.main_event_method ? 1 : 0) - (evs.main_event_method ? 1 : 0),
+                main_event_round: (full.main_event_round ? 1 : 0) - (evs.main_event_round ? 1 : 0),
+                fotn_correct: (full.fotn_correct ? 1 : 0) - (evs.fotn_correct ? 1 : 0),
+                potn_correct: (full.potn_correct ? 1 : 0) - (evs.potn_correct ? 1 : 0),
+                zebra_count: (full.zebra_count ?? 0) - (evs.zebra_count ?? 0),
               };
             })
             .filter((e) => e.points > 0 || e.wins > 0)
-            .sort((a, b) => b.points - a.points || b.wins - a.wins);
+            .sort((a, b) =>
+              (b.points - a.points) ||
+              (b.wins - a.wins) ||
+              (b.correct_methods - a.correct_methods) ||
+              (b.correct_rounds - a.correct_rounds) ||
+              (b.main_event_winner - a.main_event_winner) ||
+              (b.main_event_method - a.main_event_method) ||
+              (b.main_event_round - a.main_event_round) ||
+              (b.fotn_correct - a.fotn_correct) ||
+              (b.potn_correct - a.potn_correct) ||
+              (b.zebra_count - a.zebra_count)
+            );
 
           const previousRankMap: Record<string, number> = {};
           previousEntries.forEach((e, i) => {
