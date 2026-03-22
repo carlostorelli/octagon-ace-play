@@ -279,16 +279,18 @@ const Dashboard = () => {
     },
   });
 
-  // Top 10 for latest completed event
-  const latestEventId = completedEvents[0]?.id;
+  // Event ranking with selector
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+  const activeEventId = selectedEventId || completedEvents[0]?.id || null;
+
   const { data: rankingEvento = [] } = useQuery({
-    queryKey: ["leaderboard-evento-top10-v3", latestEventId],
-    enabled: !!latestEventId,
+    queryKey: ["leaderboard-evento-top10-v5", activeEventId],
+    enabled: !!activeEventId,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("leaderboard")
         .select("*, profiles!inner(display_name, avatar_url, instagram, verified)")
-        .eq("event_id", latestEventId!)
+        .eq("event_id", activeEventId!)
         .eq("season", CURRENT_SEASON)
         .order("points", { ascending: false })
         .order("wins", { ascending: false })
