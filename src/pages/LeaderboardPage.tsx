@@ -335,13 +335,13 @@ const LeaderboardPage = () => {
     },
   });
 
-  // Monthly champion data: fetch all per-event entries with updated_at for the season
+  // Monthly champion data: fetch all per-event entries + event dates for the season
   const { data: monthlyRaw = [] } = useQuery({
     queryKey: ["leaderboard-monthly-raw", season],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("leaderboard")
-        .select("user_id, points, wins, correct_methods, correct_rounds, main_event_winner, main_event_method, main_event_round, fotn_correct, potn_correct, zebra_count, event_id, updated_at, profiles!inner(display_name, avatar_url, instagram, verified)")
+        .select("user_id, points, wins, correct_methods, correct_rounds, main_event_winner, main_event_method, main_event_round, fotn_correct, potn_correct, zebra_count, event_id, profiles!inner(display_name, avatar_url, instagram, verified)")
         .not("event_id", "is", null)
         .eq("season", season);
       if (error) throw error;
@@ -349,15 +349,32 @@ const LeaderboardPage = () => {
     },
   });
 
+  const { data: eventsForMonthly = [] } = useQuery({
+    queryKey: ["events-for-monthly", season],
+    queryFn: async () => {
+      const { data, error } = await supabase.from("events").select("id, date");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  // Map event_id → month based on the event's actual calendar date
+  const eventMonthMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const e of eventsForMonthly) map[e.id] = (e.date as string).slice(0, 7);
+    return map;
+  }, [eventsForMonthly]);
+
   const monthlyData = useMemo(() => {
-    // Group entries by processing month (updated_at), then by user, sum all fields
+    // Group entries by the event's calendar month, then by user, sum all fields
     const byMonth: Record<string, Record<string, {
       points: number; wins: number; correct_methods: number; correct_rounds: number;
       main_event_winner: number; main_event_method: number; main_event_round: number;
       fotn_correct: number; potn_correct: number; zebra_count: number; profile: any;
     }>> = {};
     for (const entry of monthlyRaw as any[]) {
-      const month = (entry.updated_at as string).slice(0, 7);
+      const month = eventMonthMap[entry.event_id];
+      if (!month) continue;
       if (!byMonth[month]) byMonth[month] = {};
       if (!byMonth[month][entry.user_id]) {
         byMonth[month][entry.user_id] = {
@@ -409,7 +426,7 @@ const LeaderboardPage = () => {
       result[month] = sorted;
     }
     return result;
-  }, [monthlyRaw]);
+  }, [monthlyRaw, eventMonthMap]);
 
   const availableMonths = useMemo(
     () => Object.keys(monthlyData).sort().reverse(),
