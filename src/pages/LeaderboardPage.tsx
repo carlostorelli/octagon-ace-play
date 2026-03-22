@@ -289,29 +289,19 @@ const LeaderboardPage = () => {
   const { data: completedEvents = [] } = useQuery({
     queryKey: ["lb-events", season],
     queryFn: async () => {
-      const { data: lbEvents, error: lbError } = await supabase
-        .from("leaderboard")
-        .select("event_id, updated_at")
-        .not("event_id", "is", null)
-        .eq("season", season);
-      if (lbError) throw lbError;
-      // Get unique event_ids with their latest updated_at (processing time)
-      const eventMap: Record<string, string> = {};
-      for (const row of (lbEvents ?? [])) {
-        const eid = row.event_id as string;
-        if (!eventMap[eid] || row.updated_at > eventMap[eid]) {
-          eventMap[eid] = row.updated_at;
-        }
-      }
-      const eventIds = Object.keys(eventMap);
-      if (eventIds.length === 0) return [];
+      const startDate = `${season}-01-01`;
+      const endDate = `${Number(season) + 1}-01-01`;
+
       const { data, error } = await supabase
         .from("events")
         .select("id, name, date")
-        .in("id", eventIds);
+        .eq("status", "completed")
+        .gte("date", startDate)
+        .lt("date", endDate)
+        .order("date", { ascending: false });
+
       if (error) throw error;
-      // Sort by processing time (most recently scored first)
-      return (data ?? []).sort((a, b) => (eventMap[b.id] || "").localeCompare(eventMap[a.id] || ""));
+      return data ?? [];
     },
   });
 
