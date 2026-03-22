@@ -200,47 +200,32 @@ const LeaderboardPage = () => {
       if (error) throw error;
       const entries = mapEntries(data ?? []);
 
-      // Calculate position changes: compare with ranking without the latest event
-      // Fetch all event IDs with leaderboard data, then find the latest by event date
-      const { data: eventIdsRows } = await supabase
+      // Calculate position changes: compare with ranking before the most recently processed event
+      const { data: latestScoreRow } = await supabase
         .from("leaderboard")
-        .select("event_id")
+        .select("event_id, updated_at")
         .not("event_id", "is", null)
-        .eq("season", season);
+        .eq("season", season)
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
-      let latestEventRows: { event_id: string }[] = [];
-      if (eventIdsRows && eventIdsRows.length > 0) {
-        const uniqueEventIds = [...new Set(eventIdsRows.map((r: any) => r.event_id))];
-        const { data: eventsData } = await supabase
-          .from("events")
-          .select("id, date")
-          .in("id", uniqueEventIds)
-          .order("date", { ascending: false })
-          .limit(1);
-        if (eventsData && eventsData.length > 0) {
-          latestEventRows = [{ event_id: eventsData[0].id }];
-        }
-      }
+      const latestEventRows: { event_id: string }[] = latestScoreRow?.event_id
+        ? [{ event_id: latestScoreRow.event_id }]
+        : [];
 
       if (latestEventRows && latestEventRows.length > 0) {
         const latestEventId = latestEventRows[0].event_id;
-        // Fetch per-event scores for the latest event
-        const { data: eventScores } = await supabase
+        // Fetch full event scores with all tiebreaker fields
+        const { data: fullEventScores } = await supabase
           .from("leaderboard")
-          .select("user_id, points, wins")
+          .select("user_id, points, wins, correct_methods, correct_rounds, main_event_winner, main_event_method, main_event_round, fotn_correct, potn_correct, zebra_count")
           .eq("event_id", latestEventId)
           .eq("season", season);
 
-        if (eventScores && eventScores.length > 0) {
-          // Fetch full event scores with all tiebreaker fields
-          const { data: fullEventScores } = await supabase
-            .from("leaderboard")
-            .select("user_id, points, wins, correct_methods, correct_rounds, main_event_winner, main_event_method, main_event_round, fotn_correct, potn_correct, zebra_count")
-            .eq("event_id", latestEventId)
-            .eq("season", season);
-
+        if (fullEventScores && fullEventScores.length > 0) {
           const fullEsMap: Record<string, any> = {};
-          for (const es of (fullEventScores ?? [])) fullEsMap[es.user_id] = es;
+          for (const es of fullEventScores) fullEsMap[es.user_id] = es;
 
           // Build map of full current data for tiebreaker fields
           const fullDataMap: Record<string, any> = {};
