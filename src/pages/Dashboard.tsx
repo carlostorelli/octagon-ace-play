@@ -580,9 +580,16 @@ const Dashboard = () => {
                   <p className="text-sm text-muted-foreground text-center py-6">Nenhum evento concluído ainda.</p>
                 ) : (
                   <>
-                    <p className="text-xs text-muted-foreground mb-3">
-                      Último evento: <span className="font-semibold text-foreground">{completedEvents[0]?.name}</span>
-                    </p>
+                    <Select value={activeEventId ?? ""} onValueChange={setSelectedEventId}>
+                      <SelectTrigger className="w-full sm:w-[300px] mb-3">
+                        <SelectValue placeholder="Selecionar evento" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {completedEvents.map((e: any) => (
+                          <SelectItem key={e.id} value={e.id}>{e.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     {rankingEvento.length === 0 ? (
                       <p className="text-sm text-muted-foreground text-center py-6">Nenhum dado de ranking para este evento.</p>
                     ) : (
