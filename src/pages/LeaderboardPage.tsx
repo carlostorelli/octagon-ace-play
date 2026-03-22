@@ -217,15 +217,8 @@ const LeaderboardPage = () => {
       if (latestEventRows && latestEventRows.length > 0) {
         const latestEventId = latestEventRows[0].event_id;
         // Fetch per-event scores for the latest event
-        const { data: eventScores } = await supabase
-          .from("leaderboard")
-          .select("user_id, points, wins")
-          .eq("event_id", latestEventId)
-          .eq("season", season);
-
-        if (eventScores && eventScores.length > 0) {
-          // Fetch full event scores with all tiebreaker fields
-          const { data: fullEventScores } = await supabase
+        // Fetch full event scores with all tiebreaker fields
+        const { data: fullEventScores } = await supabase
             .from("leaderboard")
             .select("user_id, points, wins, correct_methods, correct_rounds, main_event_winner, main_event_method, main_event_round, fotn_correct, potn_correct, zebra_count")
             .eq("event_id", latestEventId)
