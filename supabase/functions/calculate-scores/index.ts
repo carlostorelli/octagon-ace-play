@@ -177,11 +177,11 @@ Deno.serve(async (req) => {
       if (winnerOdds != null && winnerOdds > 0) {
         let zebraBonus = 0;
         const absOdds = Math.abs(winnerOdds);
-        if (absOdds >= 400) zebraBonus = 500;
-        else if (absOdds >= 300) zebraBonus = 400;
-        else if (absOdds >= 200) zebraBonus = 300;
-        else if (absOdds >= 150) zebraBonus = 200;
-        else if (absOdds >= 100) zebraBonus = 100;
+        if (absOdds >= 400) zebraBonus = 50;
+        else if (absOdds >= 300) zebraBonus = 40;
+        else if (absOdds >= 200) zebraBonus = 30;
+        else if (absOdds >= 150) zebraBonus = 20;
+        else if (absOdds >= 100) zebraBonus = 10;
         userPoints[pred.user_id].points += zebraBonus;
         userPoints[pred.user_id].zebra_count += 1;
       }

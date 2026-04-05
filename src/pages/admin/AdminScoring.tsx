@@ -58,7 +58,7 @@ const AdminScoring = () => {
   const sortedCategories = categoryOrder.filter((cat) => localRules.some((r) => r.category === cat));
 
   const formatPoints = (points: number) => {
-    const val = points / 100;
+    const val = points / 10;
     return val % 1 === 0 ? val.toFixed(0) : val.toFixed(1).replace(".", ",");
   };
 
@@ -90,13 +90,13 @@ const AdminScoring = () => {
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
             {[
               { range: "< 2.00", pts: "+1 pt" },
-              { range: "2.00–2.29", pts: "+2 pts" },
-              { range: "2.30–2.79", pts: "+2,5 pts" },
-              { range: "2.80–3.29", pts: "+3 pts" },
-              { range: "3.30–3.79", pts: "+3,5 pts" },
-              { range: "3.80–4.29", pts: "+4 pts" },
-              { range: "4.30–4.79", pts: "+4,5 pts" },
-              { range: "4.80+", pts: "+5 pts..." },
+              { range: "2.00–2.29", pts: "+1 pt" },
+              { range: "2.30–2.79", pts: "+1,5 pts" },
+              { range: "2.80–3.29", pts: "+2 pts" },
+              { range: "3.30–3.79", pts: "+2,5 pts" },
+              { range: "3.80–4.29", pts: "+3 pts" },
+              { range: "4.30–4.79", pts: "+4 pts" },
+              { range: "4.80+", pts: "+5 pts" },
             ].map((row) => (
               <div key={row.range} className="flex items-center justify-between rounded-lg bg-muted/50 px-3 py-2">
                 <span className="text-muted-foreground">{row.range}</span>
@@ -136,7 +136,7 @@ const AdminScoring = () => {
                         />
                         <div>
                           <OSSInput
-                            label="Pontos (x100)"
+                            label="Pontos (x10)"
                             type="number"
                             value={String(rule.points)}
                             onChange={(e) => updateRule(rule.id, "points", parseInt(e.target.value) || 0)}
