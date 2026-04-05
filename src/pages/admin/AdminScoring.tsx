@@ -58,7 +58,7 @@ const AdminScoring = () => {
   const sortedCategories = categoryOrder.filter((cat) => localRules.some((r) => r.category === cat));
 
   const formatPoints = (points: number) => {
-    const val = points / 100;
+    const val = points / 10;
     return val % 1 === 0 ? val.toFixed(0) : val.toFixed(1).replace(".", ",");
   };
 
@@ -136,7 +136,7 @@ const AdminScoring = () => {
                         />
                         <div>
                           <OSSInput
-                            label="Pontos (x100)"
+                            label="Pontos (x10)"
                             type="number"
                             value={String(rule.points)}
                             onChange={(e) => updateRule(rule.id, "points", parseInt(e.target.value) || 0)}
