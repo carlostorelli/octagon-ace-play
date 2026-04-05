@@ -471,6 +471,63 @@ const AdminSettings = () => {
               </CardContent>
             </Card>
           </TabsContent>
+          {/* Danger Zone Tab */}
+          <TabsContent value="danger">
+            <Card className="glass-card border-destructive/30">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg text-destructive">
+                  <AlertTriangle className="h-5 w-5" />
+                  Zerar Pontuações
+                </CardTitle>
+                <CardDescription>
+                  Esta ação apaga <strong>todas</strong> as pontuações do ranking geral e por evento da temporada atual (2026).
+                  Isso não pode ser desfeito.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive" className="gap-2">
+                      <Trash2 className="h-4 w-4" />
+                      Zerar Toda a Pontuação
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Tem certeza absoluta?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Isso vai apagar <strong>todos os dados do ranking</strong> da temporada 2026 — ranking geral, por evento e campeão do mês.
+                        Todos os jogadores voltam a zero. Esta ação é irreversível.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                      <AlertDialogAction
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        onClick={async () => {
+                          try {
+                            const { data: { session } } = await supabase.auth.getSession();
+                            if (!session) throw new Error("Não autenticado");
+                            const res = await supabase.functions.invoke("reset-leaderboard", {
+                              body: { season: "2026" },
+                            });
+                            if (res.error) throw res.error;
+                            queryClient.invalidateQueries({ queryKey: ["leaderboard"] });
+                            toast({ title: "Pontuações zeradas!", description: "Toda a temporada 2026 foi resetada." });
+                          } catch (err: any) {
+                            toast({ title: "Erro", description: err.message, variant: "destructive" });
+                          }
+                        }}
+                      >
+                        Sim, zerar tudo
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
         </Tabs>
       </motion.div>
     </AdminLayout>
