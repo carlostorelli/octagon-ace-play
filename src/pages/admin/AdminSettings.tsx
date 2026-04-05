@@ -1,7 +1,18 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Key, Mail, Eye, EyeOff, Save, CheckCircle, MessageCircle, Loader2, Globe, Upload } from "lucide-react";
+import { Key, Mail, Eye, EyeOff, Save, CheckCircle, MessageCircle, Loader2, Globe, Upload, Trash2, AlertTriangle } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import AdminLayout from "@/components/AdminLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
