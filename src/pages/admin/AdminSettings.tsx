@@ -218,6 +218,11 @@ const AdminSettings = () => {
               <Globe className="h-4 w-4 mr-1" />
               Site
             </TabsTrigger>
+            <TabsTrigger value="danger" className="data-[state=active]:bg-destructive data-[state=active]:text-destructive-foreground text-xs sm:text-sm">
+              <AlertTriangle className="h-4 w-4 mr-1" />
+              <span className="hidden sm:inline">Zona de Perigo</span>
+              <span className="sm:hidden">Perigo</span>
+            </TabsTrigger>
           </TabsList>
 
           {/* WhatsApp Tab */}
