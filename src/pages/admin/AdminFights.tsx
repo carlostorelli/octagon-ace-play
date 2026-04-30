@@ -185,24 +185,47 @@ const AdminFights = () => {
     mutationFn: async () => {
       const parsed = parseBulkFights(bulkText);
       if (parsed.length === 0) throw new Error("Nenhuma luta encontrada. Use o formato: Nome (odds) vs Nome (odds)");
-      for (let i = 0; i < parsed.length; i++) {
-        const f = parsed[i];
-        const [idA, idB] = await Promise.all([
-          findOrCreateFighter(f.fighterA),
-          findOrCreateFighter(f.fighterB),
-        ]);
-        const { error } = await supabase.from("fights").insert({
+
+      // Resolve all fighter IDs first (creates new fighters if needed)
+      const resolved = await Promise.all(
+        parsed.map(async (f) => ({
+          ...f,
+          idA: await findOrCreateFighter(f.fighterA),
+          idB: await findOrCreateFighter(f.fighterB),
+        }))
+      );
+
+      // Build per-card-type counters so fight_order is unique within each card
+      const mainFights = resolved.filter((f) => f.cardType === "main");
+      const prelimFights = resolved.filter((f) => f.cardType === "prelim");
+
+      const rows = [
+        ...mainFights.map((f, i) => ({
           event_id: eventId!,
-          fighter_a_id: idA,
-          fighter_b_id: idB,
+          fighter_a_id: f.idA,
+          fighter_b_id: f.idB,
           fight_type: "3_rounds",
-          card_type: f.cardType,
+          card_type: "main",
           fight_order: i + 1,
           odds_fighter_a: f.oddsA,
           odds_fighter_b: f.oddsB,
-        });
-        if (error) throw error;
-      }
+        })),
+        ...prelimFights.map((f, i) => ({
+          event_id: eventId!,
+          fighter_a_id: f.idA,
+          fighter_b_id: f.idB,
+          fight_type: "3_rounds",
+          card_type: "prelim",
+          fight_order: i + 1,
+          odds_fighter_a: f.oddsA,
+          odds_fighter_b: f.oddsB,
+        })),
+      ];
+
+      // Single batch insert: all-or-nothing, so a failure won't leave partial duplicates
+      const { error } = await supabase.from("fights").insert(rows);
+      if (error) throw error;
+
       return parsed.length;
     },
     onSuccess: (count) => {
