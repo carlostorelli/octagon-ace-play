@@ -94,13 +94,31 @@ const AdminSettings = () => {
   const [siteDescription, setSiteDescription] = useState("");
   const [siteFaviconUrl, setSiteFaviconUrl] = useState("");
 
+  // PWA state
+  const [pwa, setPwa] = useState({
+    pwa_name: "",
+    pwa_short_name: "",
+    pwa_description: "",
+    pwa_theme_color: "#000000",
+    pwa_background_color: "#0a0a0a",
+    pwa_icon_url: "",
+    pwa_apple_touch_icon_url: "",
+    pwa_splash_image_url: "",
+    pwa_install_banner_title: "",
+    pwa_install_banner_subtitle: "",
+    pwa_install_modal_title: "",
+    pwa_install_modal_description: "",
+  });
+
+  const PWA_KEYS_LIST = Object.keys(pwa);
+
   const { data: settings } = useQuery({
     queryKey: ["admin-site-settings"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("site_settings")
         .select("*")
-        .in("key", ["whatsapp_group_link", "site_title", "site_description", "site_favicon_url"]);
+        .in("key", ["whatsapp_group_link", "site_title", "site_description", "site_favicon_url", ...PWA_KEYS_LIST]);
       if (error) throw error;
       return data;
     },
