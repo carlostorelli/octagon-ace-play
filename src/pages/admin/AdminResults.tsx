@@ -119,9 +119,20 @@ const AdminResults = () => {
           if (error) throw error;
         }
       }
+
+      // Auto-calculate scores after saving results
+      const { data: scoreData, error: scoreError } = await supabase.functions.invoke("calculate-scores", {
+        body: { event_id: eventId },
+      });
+      if (scoreError) throw new Error(`Resultados salvos, mas falhou ao calcular pontuação: ${scoreError.message}`);
+      if (scoreData?.error) throw new Error(`Resultados salvos, mas falhou ao calcular pontuação: ${scoreData.error}`);
+      return scoreData;
     },
-    onSuccess: () => {
-      toast({ title: "Resultados salvos! ✅" });
+    onSuccess: (data: any) => {
+      toast({
+        title: "Resultados salvos e pontuação calculada! 🏆",
+        description: `${data?.users_scored ?? 0} usuários pontuados a partir de ${data?.total_predictions ?? 0} palpites`,
+      });
       queryClient.invalidateQueries({ queryKey: ["admin-fight-results", eventId] });
     },
     onError: (err: any) => toast({ title: "Erro", description: err.message, variant: "destructive" }),
