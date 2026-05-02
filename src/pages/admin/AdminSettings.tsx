@@ -292,6 +292,10 @@ const AdminSettings = () => {
               <Globe className="h-4 w-4 mr-1" />
               Site
             </TabsTrigger>
+            <TabsTrigger value="pwa" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-xs sm:text-sm">
+              <Smartphone className="h-4 w-4 mr-1" />
+              PWA
+            </TabsTrigger>
             <TabsTrigger value="danger" className="data-[state=active]:bg-destructive data-[state=active]:text-destructive-foreground text-xs sm:text-sm">
               <AlertTriangle className="h-4 w-4 mr-1" />
               <span className="hidden sm:inline">Zona de Perigo</span>
