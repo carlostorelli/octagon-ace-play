@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Key, Mail, Eye, EyeOff, Save, CheckCircle, MessageCircle, Loader2, Globe, Upload, Trash2, AlertTriangle } from "lucide-react";
+import { Key, Mail, Eye, EyeOff, Save, CheckCircle, MessageCircle, Loader2, Globe, Upload, Trash2, AlertTriangle, Smartphone } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   AlertDialog,
