@@ -130,8 +130,64 @@ const AdminSettings = () => {
       setSiteTitle(settings.find((s) => s.key === "site_title")?.value || "");
       setSiteDescription(settings.find((s) => s.key === "site_description")?.value || "");
       setSiteFaviconUrl(settings.find((s) => s.key === "site_favicon_url")?.value || "");
+      setPwa((prev) => {
+        const next = { ...prev };
+        for (const k of Object.keys(prev) as (keyof typeof prev)[]) {
+          const found = settings.find((s) => s.key === k)?.value;
+          if (found !== undefined) (next as any)[k] = found;
+        }
+        return next;
+      });
     }
   }, [settings]);
+
+  const savePwa = useMutation({
+    mutationFn: async () => {
+      const entries = (Object.keys(pwa) as (keyof typeof pwa)[]).map((k) => ({
+        key: k as string,
+        value: pwa[k] || "",
+      }));
+      for (const entry of entries) {
+        const { data: existing } = await supabase
+          .from("site_settings")
+          .select("id")
+          .eq("key", entry.key)
+          .maybeSingle();
+        if (existing) {
+          const { error } = await supabase.from("site_settings").update({ value: entry.value }).eq("key", entry.key);
+          if (error) throw error;
+        } else {
+          const { error } = await supabase.from("site_settings").insert(entry);
+          if (error) throw error;
+        }
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-site-settings"] });
+      queryClient.invalidateQueries({ queryKey: ["pwa-settings"] });
+      toast({ title: "PWA atualizado!", description: "As configurações do app foram salvas. Em dispositivos já instalados, a atualização pode demorar até reabrir o app." });
+    },
+    onError: (err: any) => {
+      toast({ title: "Erro", description: err.message, variant: "destructive" });
+    },
+  });
+
+  const uploadPwaImage = async (file: File, prefix: string): Promise<string | null> => {
+    if (file.size > 2 * 1024 * 1024) {
+      toast({ title: "Arquivo muito grande", description: "Máximo 2MB.", variant: "destructive" });
+      return null;
+    }
+    const ext = file.name.split(".").pop() || "png";
+    const filePath = `${prefix}.${ext}`;
+    const { error } = await supabase.storage.from("site-assets").upload(filePath, file, { upsert: true });
+    if (error) {
+      toast({ title: "Erro no upload", description: error.message, variant: "destructive" });
+      return null;
+    }
+    const { data: urlData } = supabase.storage.from("site-assets").getPublicUrl(filePath);
+    return urlData.publicUrl + "?t=" + Date.now();
+  };
+
 
   const saveWhatsapp = useMutation({
     mutationFn: async () => {
