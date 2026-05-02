@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
 import { Calendar, Users, Trophy, Swords, TrendingUp, Loader2, LogOut, ArrowRight, Clock, MapPin, Lock, Instagram, Megaphone, X, Crown, ChevronUp, ChevronDown } from "lucide-react";
 import UserBadges from "@/components/UserBadges";
+import PWADashboardCard from "@/components/pwa/PWADashboardCard";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate, Link } from "react-router-dom";
 import AppLayout from "@/components/AppLayout";
@@ -496,6 +497,9 @@ const Dashboard = () => {
             </button>
           </motion.div>
         )}
+
+        {/* PWA Install Card */}
+        <PWADashboardCard />
 
         {/* WhatsApp Group */}
         {announcement?.whatsapp && (
