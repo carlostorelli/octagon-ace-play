@@ -4,6 +4,7 @@ import { Swords, Trophy, Calendar, BarChart3, Menu, X, Shield, User } from "luci
 import { useState } from "react";
 import { useAdmin } from "@/hooks/useAdmin";
 import NotificationBell from "@/components/NotificationBell";
+import PWAInstallButton from "@/components/pwa/PWAInstallButton";
 
 const navItems = [
   { path: "/dashboard", label: "Dashboard", icon: BarChart3 },
@@ -60,6 +61,7 @@ const AppLayout = ({ children }: { children: React.ReactNode }) => {
                 Admin
               </Link>
             )}
+            <PWAInstallButton variant="icon" />
             <NotificationBell />
           </nav>
 
