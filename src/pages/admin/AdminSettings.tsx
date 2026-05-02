@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { Key, Mail, Eye, EyeOff, Save, CheckCircle, MessageCircle, Loader2, Globe, Upload, Trash2, AlertTriangle } from "lucide-react";
+import { Key, Mail, Eye, EyeOff, Save, CheckCircle, MessageCircle, Loader2, Globe, Upload, Trash2, AlertTriangle, Smartphone } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   AlertDialog,
@@ -94,13 +94,31 @@ const AdminSettings = () => {
   const [siteDescription, setSiteDescription] = useState("");
   const [siteFaviconUrl, setSiteFaviconUrl] = useState("");
 
+  // PWA state
+  const [pwa, setPwa] = useState({
+    pwa_name: "",
+    pwa_short_name: "",
+    pwa_description: "",
+    pwa_theme_color: "#000000",
+    pwa_background_color: "#0a0a0a",
+    pwa_icon_url: "",
+    pwa_apple_touch_icon_url: "",
+    pwa_splash_image_url: "",
+    pwa_install_banner_title: "",
+    pwa_install_banner_subtitle: "",
+    pwa_install_modal_title: "",
+    pwa_install_modal_description: "",
+  });
+
+  const PWA_KEYS_LIST = Object.keys(pwa);
+
   const { data: settings } = useQuery({
     queryKey: ["admin-site-settings"],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("site_settings")
         .select("*")
-        .in("key", ["whatsapp_group_link", "site_title", "site_description", "site_favicon_url"]);
+        .in("key", ["whatsapp_group_link", "site_title", "site_description", "site_favicon_url", ...PWA_KEYS_LIST]);
       if (error) throw error;
       return data;
     },
@@ -112,8 +130,64 @@ const AdminSettings = () => {
       setSiteTitle(settings.find((s) => s.key === "site_title")?.value || "");
       setSiteDescription(settings.find((s) => s.key === "site_description")?.value || "");
       setSiteFaviconUrl(settings.find((s) => s.key === "site_favicon_url")?.value || "");
+      setPwa((prev) => {
+        const next = { ...prev };
+        for (const k of Object.keys(prev) as (keyof typeof prev)[]) {
+          const found = settings.find((s) => s.key === k)?.value;
+          if (found !== undefined) (next as any)[k] = found;
+        }
+        return next;
+      });
     }
   }, [settings]);
+
+  const savePwa = useMutation({
+    mutationFn: async () => {
+      const entries = (Object.keys(pwa) as (keyof typeof pwa)[]).map((k) => ({
+        key: k as string,
+        value: pwa[k] || "",
+      }));
+      for (const entry of entries) {
+        const { data: existing } = await supabase
+          .from("site_settings")
+          .select("id")
+          .eq("key", entry.key)
+          .maybeSingle();
+        if (existing) {
+          const { error } = await supabase.from("site_settings").update({ value: entry.value }).eq("key", entry.key);
+          if (error) throw error;
+        } else {
+          const { error } = await supabase.from("site_settings").insert(entry);
+          if (error) throw error;
+        }
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["admin-site-settings"] });
+      queryClient.invalidateQueries({ queryKey: ["pwa-settings"] });
+      toast({ title: "PWA atualizado!", description: "As configurações do app foram salvas. Em dispositivos já instalados, a atualização pode demorar até reabrir o app." });
+    },
+    onError: (err: any) => {
+      toast({ title: "Erro", description: err.message, variant: "destructive" });
+    },
+  });
+
+  const uploadPwaImage = async (file: File, prefix: string): Promise<string | null> => {
+    if (file.size > 2 * 1024 * 1024) {
+      toast({ title: "Arquivo muito grande", description: "Máximo 2MB.", variant: "destructive" });
+      return null;
+    }
+    const ext = file.name.split(".").pop() || "png";
+    const filePath = `${prefix}.${ext}`;
+    const { error } = await supabase.storage.from("site-assets").upload(filePath, file, { upsert: true });
+    if (error) {
+      toast({ title: "Erro no upload", description: error.message, variant: "destructive" });
+      return null;
+    }
+    const { data: urlData } = supabase.storage.from("site-assets").getPublicUrl(filePath);
+    return urlData.publicUrl + "?t=" + Date.now();
+  };
+
 
   const saveWhatsapp = useMutation({
     mutationFn: async () => {
@@ -217,6 +291,10 @@ const AdminSettings = () => {
             <TabsTrigger value="site" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-xs sm:text-sm">
               <Globe className="h-4 w-4 mr-1" />
               Site
+            </TabsTrigger>
+            <TabsTrigger value="pwa" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground text-xs sm:text-sm">
+              <Smartphone className="h-4 w-4 mr-1" />
+              PWA
             </TabsTrigger>
             <TabsTrigger value="danger" className="data-[state=active]:bg-destructive data-[state=active]:text-destructive-foreground text-xs sm:text-sm">
               <AlertTriangle className="h-4 w-4 mr-1" />
@@ -471,6 +549,127 @@ const AdminSettings = () => {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* PWA Tab */}
+          <TabsContent value="pwa">
+            <div className="space-y-6">
+              <Card className="glass-card border-border/30">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <Smartphone className="h-5 w-5 text-primary" />
+                    App Instalável (PWA)
+                  </CardTitle>
+                  <CardDescription>
+                    Personalize como o app aparece quando instalado na tela inicial dos seus usuários (Android e iPhone).
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="rounded-lg border border-amber-500/30 bg-amber-500/5 p-3 text-xs text-amber-200/90">
+                    ⚠️ <strong>Limitação real do iOS / sistemas operacionais:</strong> dispositivos que <em>já tenham</em> o app instalado mantêm o nome, ícone e cores travados desde a instalação. Mudanças aqui só aparecem em <strong>novas instalações</strong> ou quando o usuário reinstalar. Theme color e descrição atualizam normalmente.
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label>Nome do app</Label>
+                      <Input value={pwa.pwa_name} onChange={(e) => setPwa({ ...pwa, pwa_name: e.target.value })} placeholder="OSS Fantasy - Palpites de MMA" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Nome curto (tela inicial)</Label>
+                      <Input value={pwa.pwa_short_name} onChange={(e) => setPwa({ ...pwa, pwa_short_name: e.target.value })} placeholder="OSS Fantasy" />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label>Descrição</Label>
+                    <Textarea rows={2} value={pwa.pwa_description} onChange={(e) => setPwa({ ...pwa, pwa_description: e.target.value })} />
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-1.5">
+                      <Label>Cor principal (theme color)</Label>
+                      <div className="flex items-center gap-2">
+                        <input type="color" value={pwa.pwa_theme_color} onChange={(e) => setPwa({ ...pwa, pwa_theme_color: e.target.value })} className="h-10 w-14 rounded border border-border bg-transparent cursor-pointer" />
+                        <Input value={pwa.pwa_theme_color} onChange={(e) => setPwa({ ...pwa, pwa_theme_color: e.target.value })} className="font-mono" />
+                      </div>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Cor de fundo (splash)</Label>
+                      <div className="flex items-center gap-2">
+                        <input type="color" value={pwa.pwa_background_color} onChange={(e) => setPwa({ ...pwa, pwa_background_color: e.target.value })} className="h-10 w-14 rounded border border-border bg-transparent cursor-pointer" />
+                        <Input value={pwa.pwa_background_color} onChange={(e) => setPwa({ ...pwa, pwa_background_color: e.target.value })} className="font-mono" />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Icon uploads */}
+                  {[
+                    { key: "pwa_icon_url" as const, label: "Ícone principal (mín. 512x512 PNG)", prefix: "pwa-icon" },
+                    { key: "pwa_apple_touch_icon_url" as const, label: "Apple Touch Icon (180x180 PNG)", prefix: "pwa-apple-icon" },
+                    { key: "pwa_splash_image_url" as const, label: "Imagem de splash/branding (opcional)", prefix: "pwa-splash" },
+                  ].map(({ key, label, prefix }) => (
+                    <div key={key} className="space-y-1.5">
+                      <Label>{label}</Label>
+                      <div className="flex items-center gap-3">
+                        {pwa[key] && (
+                          <img src={pwa[key]} alt="" className="h-14 w-14 rounded-xl border border-border object-cover bg-background" />
+                        )}
+                        <label className="flex items-center gap-2 cursor-pointer px-4 py-2 rounded-md border border-border bg-secondary hover:bg-secondary/80 transition-colors text-sm">
+                          <Upload className="h-4 w-4" />
+                          {pwa[key] ? "Trocar" : "Enviar"}
+                          <input
+                            type="file"
+                            accept="image/png,image/jpeg,image/webp"
+                            className="hidden"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              const url = await uploadPwaImage(file, prefix);
+                              if (url) setPwa((p) => ({ ...p, [key]: url }));
+                            }}
+                          />
+                        </label>
+                        {pwa[key] && (
+                          <Button variant="ghost" size="sm" onClick={() => setPwa((p) => ({ ...p, [key]: "" }))}>
+                            Remover
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+
+                  <div className="border-t border-border/30 pt-4 space-y-3">
+                    <h3 className="text-sm font-medium">Banner de instalação</h3>
+                    <div className="space-y-1.5">
+                      <Label>Título do banner</Label>
+                      <Input value={pwa.pwa_install_banner_title} onChange={(e) => setPwa({ ...pwa, pwa_install_banner_title: e.target.value })} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Subtítulo / benefício</Label>
+                      <Textarea rows={2} value={pwa.pwa_install_banner_subtitle} onChange={(e) => setPwa({ ...pwa, pwa_install_banner_subtitle: e.target.value })} />
+                    </div>
+                  </div>
+
+                  <div className="border-t border-border/30 pt-4 space-y-3">
+                    <h3 className="text-sm font-medium">Tutorial de instalação no iPhone</h3>
+                    <div className="space-y-1.5">
+                      <Label>Título do modal</Label>
+                      <Input value={pwa.pwa_install_modal_title} onChange={(e) => setPwa({ ...pwa, pwa_install_modal_title: e.target.value })} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Descrição do modal</Label>
+                      <Textarea rows={2} value={pwa.pwa_install_modal_description} onChange={(e) => setPwa({ ...pwa, pwa_install_modal_description: e.target.value })} />
+                    </div>
+                  </div>
+
+                  <Button onClick={() => savePwa.mutate()} disabled={savePwa.isPending} className="gap-1.5">
+                    {savePwa.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                    Salvar configurações do PWA
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
           {/* Danger Zone Tab */}
           <TabsContent value="danger">
             <Card className="glass-card border-destructive/30">
