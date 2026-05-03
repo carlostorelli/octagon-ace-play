@@ -20,8 +20,8 @@ const PWAInstallButton = ({ variant = "default", className }: Props) => {
     );
   }
 
-  // Em desktop sem prompt disponível e não-iOS, esconde para não confundir
-  if (platform === "desktop" && !canPromptInstall && variant === "icon") return null;
+  // PWA install só em mobile (Android/iOS). No desktop, esconde sempre.
+  if (platform !== "ios" && platform !== "android") return null;
 
   const handle = async () => {
     const r = await promptInstall();
