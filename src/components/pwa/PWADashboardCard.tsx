@@ -4,20 +4,17 @@ import PWAInstallButton from "./PWAInstallButton";
 import { usePWA } from "@/hooks/usePWA";
 
 const PWADashboardCard = () => {
-  const { installed, settings, platform, shouldShowBanner } = usePWA();
+  const { installed, settings, platform } = usePWA();
 
   // Só mostra se NÃO instalado
   if (installed) return null;
-  // Em preview/iframe e não-iOS, instalação nunca vai funcionar — esconde card
-  if (platform !== "ios" && !shouldShowBanner) {
-    // shouldShowBanner já considera isPWASupported. Se não suportado e não-iOS, nem aparece.
-    // Mas se o banner estiver dispensado por 24h, ainda queremos mostrar o card no dashboard.
-    // Por isso checamos suporte por outro caminho:
-    if (typeof window !== "undefined") {
-      try {
-        if (window.self !== window.top) return null;
-      } catch { return null; }
-    }
+  // PWA install só faz sentido em mobile (Android/iOS). Esconde no desktop e outros.
+  if (platform !== "ios" && platform !== "android") return null;
+  // Em iframe (preview) não funciona — esconde
+  if (typeof window !== "undefined") {
+    try {
+      if (window.self !== window.top) return null;
+    } catch { return null; }
   }
 
   return (
