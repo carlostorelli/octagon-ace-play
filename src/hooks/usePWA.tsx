@@ -321,6 +321,8 @@ export function PWAProvider({ children }: { children: ReactNode }) {
   const shouldShowBanner = useMemo(() => {
     if (installed) return false;
     if (Date.now() < bannerDismissedUntil) return false;
+    // PWA install só faz sentido em mobile (Android/iOS). Nunca mostra em desktop.
+    if (platform !== "ios" && platform !== "android") return false;
     // Em iframe/preview: não mostra (SW não registra, install nunca dispara)
     if (!isPWASupported() && platform !== "ios") return false;
     if (platform === "ios") return true;
