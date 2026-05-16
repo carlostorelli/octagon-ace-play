@@ -112,6 +112,8 @@ const AuthPage = () => {
             <OSSInput
               label="Email"
               type="email"
+              name="email"
+              autoComplete="email"
               placeholder="seu@email.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -135,11 +137,13 @@ const AuthPage = () => {
             </p>
           </form>
         ) : (
-          <form onSubmit={handleSubmit} className="glass-card rounded-xl p-6 space-y-4">
+          <form onSubmit={handleSubmit} className="glass-card rounded-xl p-6 space-y-4" method="post" autoComplete="on">
             {!isLogin && (
               <>
                 <OSSInput
                   label="Nome"
+                  name="name"
+                  autoComplete="name"
                   placeholder="Seu nome no ranking"
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
@@ -147,6 +151,8 @@ const AuthPage = () => {
                 />
                 <OSSInput
                   label="Instagram"
+                  name="instagram"
+                  autoComplete="off"
                   placeholder="@seuusuario"
                   value={instagram}
                   onChange={(e) => setInstagram(e.target.value)}
@@ -156,6 +162,8 @@ const AuthPage = () => {
             <OSSInput
               label="Email"
               type="email"
+              name="email"
+              autoComplete={isLogin ? "username" : "email"}
               placeholder="seu@email.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -164,6 +172,8 @@ const AuthPage = () => {
             <OSSInput
               label="Senha"
               type="password"
+              name="password"
+              autoComplete={isLogin ? "current-password" : "new-password"}
               placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
