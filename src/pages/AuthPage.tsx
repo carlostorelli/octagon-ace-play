@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { OSSInput } from "@/components/ui/oss-input";
 import { toast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 const AuthPage = () => {
   const [searchParams] = useSearchParams();
@@ -16,11 +17,18 @@ const AuthPage = () => {
   const [displayName, setDisplayName] = useState("");
   const [instagram, setInstagram] = useState("");
   const [loading, setLoading] = useState(false);
+  const { user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
     setIsLogin(searchParams.get("mode") !== "signup");
   }, [searchParams]);
+
+  useEffect(() => {
+    if (!authLoading && user) {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [authLoading, navigate, user]);
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
