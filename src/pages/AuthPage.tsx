@@ -112,6 +112,8 @@ const AuthPage = () => {
             <OSSInput
               label="Email"
               type="email"
+              name="email"
+              autoComplete="email"
               placeholder="seu@email.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
