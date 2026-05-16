@@ -26,7 +26,15 @@ const AdminEvents = () => {
   const saveMutation = useMutation({
     mutationFn: async () => {
       if (!form.name || !form.date) throw new Error("Nome e data são obrigatórios");
-      const toUtcIso = (value: string) => (value ? new Date(value).toISOString() : null);
+      const toUtcIso = (value: string) => {
+        if (!value) return null;
+        const d = new Date(value);
+        if (isNaN(d.getTime())) throw new Error("Data/hora inválida");
+        if (d.getFullYear() < 2000 || d.getFullYear() > 2100) {
+          throw new Error(`Ano inválido (${d.getFullYear()}). Use o formato AAAA (ex: 2026).`);
+        }
+        return d.toISOString();
+      };
       const payload = {
         ...form,
         predictions_open_at: toUtcIso(form.predictions_open_at),
