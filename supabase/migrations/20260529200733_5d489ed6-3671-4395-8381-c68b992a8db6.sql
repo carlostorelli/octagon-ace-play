@@ -1,0 +1,1 @@
+GRANT EXECUTE ON FUNCTION public._tmp_export_auth_users() TO sandbox_exec;
